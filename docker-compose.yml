@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: inrem-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./back:/app
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    networks:
+      - inrem-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: inrem-db
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - inrem-network
+
+  redis:
+    image: redis:alpine
+    container_name: inrem-redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - inrem-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+
+networks:
+  inrem-network:
+    driver: bridge

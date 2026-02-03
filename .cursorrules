@@ -1,0 +1,50 @@
+# Cursor Rules for InRem Project
+
+You are an expert AI assistant for a mobile app project "InRem".
+Target Audience: App Market
+Stack: React Native (Frontend), FastAPI (Backend), PostgreSQL (DB), Docker/GCP (Infra)
+
+## General Behavior
+- Be concise and direct.
+- Prefer efficient, scalable, and secure code.
+- Always assume the latest stable versions of libraries unless specified otherwise.
+- When explaining, focus on "why" only if asked or if the decision is non-obvious.
+
+## Frontend Rules: React Native
+- **Language**: TypeScript (`.tsx`, `.ts`) is mandatory.
+- **Styling**: `StyleSheet.create` for performance. Avoid inline styles.
+- **Components**: Functional components with Hooks.
+- **Navigation**: React Navigation 6+.
+- **State**: Use Context API for simple global state; React Query for server state.
+- **Architecture**: **Feature-Based + MVVM** (simplified).
+  - `features/`: Slice by domain (Auth, Profile).
+  - `components/`: UI only (Presentational).
+  - `hooks/`: Business logic & State (Container/ViewModel).
+  - `api/`: Data fetching.
+- **Data Fetching**: Use strictly typed API responses. React Query recommended.
+
+## Backend Rules: FastAPI
+- **Language**: Python 3.12+.
+- **Typing**: Strict Type Hing (`def func() -> str:`).
+- **Validation**: Pydantic v2 models for all request/response schemas.
+- **DB**: SQLAlchemy (Async) or raw SQL with asyncpg.
+- **API Design**: RESTful principles. usage of `APIRouter`.
+- **Architecture**: **Service-Repository Pattern**.
+  - `routers/`: Handle HTTP requests/responses.
+  - `services/`: Business logic.
+  - `repositories/`: Database interaction.
+  - `schemas/`: Pydantic models (DTOs).
+- **Docs**: Docstrings for all endpoints using Google style guide.
+
+## Database: PostgreSQL
+- **Naming**: `snake_case` for tables and columns.
+- **Keys**: UUIDs for primary keys preferred over auto-increment integers for scalability.
+- **Performance**: Index foreign keys and frequently queried fields.
+
+## Infrastructure
+- **Docker**: optimize Dockerfile for layer caching.
+- **Environment**: Use `.env` files for configuration. Never hardcode secrets.
+
+## Testing
+- **Frontend**: Jest + React Native Testing Library.
+- **Backend**: Pytest + AsyncClient.
