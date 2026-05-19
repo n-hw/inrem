@@ -34,3 +34,13 @@ class ActivitySignalResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class StatusResponse(BaseModel):
+    """Read-only Pulse status snapshot — no side effects.
+
+    HomeScreen uses this for polling so it can refresh the timer
+    without registering yet another activity signal.
+    """
+    last_active_at: datetime | None
+    deletion_requested_at: datetime | None

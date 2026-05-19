@@ -89,6 +89,11 @@ export interface HeartbeatResponse {
     signal_id: string;
 }
 
+export interface StatusResponse {
+    last_active_at: string | null;
+    deletion_requested_at: string | null;
+}
+
 export const signalApi = {
     /**
      * Send a heartbeat signal to the server.
@@ -99,6 +104,15 @@ export const signalApi = {
             signal_type: signalType,
             device_info: deviceInfo,
         });
+        return response.data;
+    },
+    /**
+     * Read-only status snapshot — no side effects.
+     * Used by HomeScreen polling so the timer reflects activity from
+     * other devices without minting another heartbeat.
+     */
+    getStatus: async (): Promise<StatusResponse> => {
+        const response = await apiClient.get('/signal/status');
         return response.data;
     },
 };

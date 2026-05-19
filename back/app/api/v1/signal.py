@@ -7,7 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
-from app.schemas.signal import HeartbeatRequest, HeartbeatResponse
+from app.schemas.signal import (
+    HeartbeatRequest,
+    HeartbeatResponse,
+    StatusResponse,
+)
 from app.services import signal_service
 
 router = APIRouter(prefix="/signal", tags=["signal"])
@@ -44,4 +48,20 @@ async def send_heartbeat(
         success=True,
         last_active_at=last_active_at,
         signal_id=signal.id,
+    )
+
+
+@router.get("/status", response_model=StatusResponse)
+async def get_status(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """Read-only Pulse status snapshot — **no side effects**.
+
+    HomeScreen calls this on a polling interval so the timer reflects
+    activity from other devices without minting yet another heartbeat
+    signal.
+    """
+    return StatusResponse(
+        last_active_at=current_user.last_active_at,
+        deletion_requested_at=current_user.deletion_requested_at,
     )

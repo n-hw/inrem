@@ -44,16 +44,15 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
     const [remainingSeconds, setRemainingSeconds] = useState(0);
     const [heritageSummary, setHeritageSummary] = useState<AssetSummary | null>(null);
 
-    // Initial Fetch: Policy & Status
+    // Initial Fetch: Policy & Status. Sends an app_open heartbeat on
+    // mount so the user is registered as active; later polls via the
+    // read-only /signal/status endpoint (no side effects).
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
             const policy = await settingsApi.getPolicy();
             setThresholdHours(policy.threshold_hours);
 
-            // In a real scenario, we should fetch 'last_active_at' from user profile or status API
-            // For MVP, we presume the local session start or a heartbeat response updates this.
-            // Let's manually trigger a heartbeat 'app_open' to sync first.
             const response = await signalApi.sendHeartbeat('app_open');
             setLastActiveAt(new Date(response.last_active_at));
 
@@ -73,6 +72,27 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    // Periodically refresh last_active_at via the read-only status endpoint
+    // so activity from other devices (web, second phone) is reflected
+    // without minting another heartbeat. 60s is conservative — enough to
+    // catch cross-device activity, light enough on battery.
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            try {
+                const status = await signalApi.getStatus();
+                if (status.last_active_at) {
+                    const fresh = new Date(status.last_active_at);
+                    setLastActiveAt((prev) =>
+                        prev && prev.getTime() >= fresh.getTime() ? prev : fresh,
+                    );
+                }
+            } catch (e) {
+                console.warn('status poll failed', e);
+            }
+        }, 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Timer Logic — only runs after we have a real last_active_at from the server.
     useEffect(() => {
