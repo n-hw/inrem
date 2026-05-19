@@ -1,20 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Text, ScrollView, RefreshControl } from 'react-native';
+import {
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { colors } from '../theme/colors';
+import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import { useAuth } from '../context/AuthContext';
 import { CircularTimer } from '../components/CircularTimer';
 import { SwipeToConfirm } from '../components/SwipeToConfirm';
-import { signalApi, settingsApi } from '../api/client';
+import {
+    type AssetSummary,
+    heritageApi,
+    settingsApi,
+    signalApi,
+    upsellApi,
+} from '../api/client';
 import { haptic } from '../utils/haptics';
+import type { MainTabKey } from './MainTabsScreen';
 
-export const HomeScreen = () => {
+interface Props {
+    /** Optional tab navigator hook so cards can deep-link into other tabs. */
+    onNavigate?: (key: MainTabKey) => void;
+}
+
+export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [thresholdHours, setThresholdHours] = useState(12);
     const [lastActiveAt, setLastActiveAt] = useState<Date>(new Date());
     const [remainingSeconds, setRemainingSeconds] = useState(0);
+    const [heritageSummary, setHeritageSummary] = useState<AssetSummary | null>(null);
 
     // Initial Fetch: Policy & Status
     const fetchData = useCallback(async () => {
@@ -28,6 +50,13 @@ export const HomeScreen = () => {
             // Let's manually trigger a heartbeat 'app_open' to sync first.
             const response = await signalApi.sendHeartbeat('app_open');
             setLastActiveAt(new Date(response.last_active_at));
+
+            try {
+                const sum = await heritageApi.getSummary();
+                setHeritageSummary(sum);
+            } catch (e) {
+                console.warn('Heritage summary fetch failed', e);
+            }
         } catch (e) {
             console.error('Failed to fetch home data', e);
         } finally {
@@ -68,6 +97,20 @@ export const HomeScreen = () => {
         }
     };
 
+    const handleFamilyShareTap = async () => {
+        await haptic.selection();
+        try {
+            await upsellApi.logClick('family_share', 'home');
+        } catch (e) {
+            console.warn('Upsell click log failed', e);
+        }
+        Alert.alert(
+            '곧 만나요',
+            '가족공유 기능은 준비 중이에요. 출시되면 가장 먼저 알려드릴게요.',
+            [{ text: '확인', style: 'default' }],
+        );
+    };
+
     // Calculate percentage for visualization
     const totalSeconds = thresholdHours * 3600;
     const percentage = Math.max(0, Math.min(1, remainingSeconds / totalSeconds));
@@ -85,6 +128,16 @@ export const HomeScreen = () => {
         if (remainingSeconds < 3600) return 'warning'; // Less than 1 hour
         return 'safe';
     };
+
+    const heritageTotal = heritageSummary?.total ?? 0;
+    const heritageCardTitle =
+        heritageTotal === 0
+            ? '디지털 유산 정리를 시작해 보세요'
+            : `오늘 한 가지 더 정리해 볼까요?`;
+    const heritageCardSubtitle =
+        heritageTotal === 0
+            ? '추천 5가지 중 하나로 1분 안에 시작할 수 있어요.'
+            : `현재 ${heritageTotal}개 항목이 안전하게 보관되어 있어요.`;
 
     return (
         <ScreenLayout>
@@ -125,6 +178,62 @@ export const HomeScreen = () => {
                     </Text>
                 </View>
 
+                {/* Heritage daily nudge card (PRD §5.2) */}
+                <TouchableOpacity
+                    style={styles.heritageCard}
+                    activeOpacity={0.85}
+                    onPress={() => onNavigate?.('heritage')}
+                    accessibilityRole="button"
+                    accessibilityLabel="유산함으로 이동"
+                >
+                    <View style={styles.heritageHeader}>
+                        <Text style={styles.heritageEmoji}>🗂️</Text>
+                        <Text style={[typography.label, { color: colors.text.caption }]}>
+                            Heritage Box
+                        </Text>
+                    </View>
+                    <Text style={[typography.body1, { color: colors.text.primary, marginTop: 4 }]}>
+                        {heritageCardTitle}
+                    </Text>
+                    <Text
+                        style={[
+                            typography.caption,
+                            { color: colors.text.secondary, marginTop: spacing.xs },
+                        ]}
+                    >
+                        {heritageCardSubtitle}
+                    </Text>
+                    <Text style={styles.heritageCta}>지금 정리하기 ›</Text>
+                </TouchableOpacity>
+
+                {/* Family share paywall card (PRD §2.1 goal 4) */}
+                <TouchableOpacity
+                    style={styles.upsellCard}
+                    activeOpacity={0.85}
+                    onPress={handleFamilyShareTap}
+                    accessibilityRole="button"
+                    accessibilityLabel="가족공유 알림 신청"
+                >
+                    <View style={styles.upsellHeader}>
+                        <Text style={styles.heritageEmoji}>👨‍👩‍👧</Text>
+                        <View style={styles.premiumBadge}>
+                            <Text style={styles.premiumBadgeText}>Premium</Text>
+                        </View>
+                    </View>
+                    <Text style={[typography.body1, { color: colors.text.primary, marginTop: 4 }]}>
+                        가족과 함께 안전망 만들기
+                    </Text>
+                    <Text
+                        style={[
+                            typography.caption,
+                            { color: colors.text.secondary, marginTop: spacing.xs },
+                        ]}
+                    >
+                        보호자가 함께 자산을 관리하고 비상 시 더 빠르게 연결돼요.
+                    </Text>
+                    <Text style={styles.upsellCta}>알림 받기 ›</Text>
+                </TouchableOpacity>
+
             </ScrollView>
         </ScreenLayout>
     );
@@ -135,10 +244,11 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         alignItems: 'center',
         paddingVertical: 24,
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.xxl + spacing.xl,
     },
     header: {
         width: '100%',
-        paddingHorizontal: 24,
         marginBottom: 40,
         alignItems: 'flex-start',
     },
@@ -165,5 +275,55 @@ const styles = StyleSheet.create({
         height: 8,
         borderRadius: 4,
         marginRight: 6,
+    },
+    heritageCard: {
+        width: '100%',
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        marginTop: spacing.xl,
+    },
+    heritageHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+    },
+    heritageEmoji: { fontSize: 22 },
+    heritageCta: {
+        ...typography.label,
+        color: colors.primary,
+        marginTop: spacing.md,
+    },
+    upsellCard: {
+        width: '100%',
+        backgroundColor: colors.card,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: colors.accent,
+        padding: spacing.lg,
+        marginTop: spacing.md,
+    },
+    upsellHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    premiumBadge: {
+        backgroundColor: colors.accent,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 2,
+        borderRadius: radius.full,
+    },
+    premiumBadgeText: {
+        ...typography.caption,
+        color: colors.text.inverse,
+        fontWeight: '700',
+    },
+    upsellCta: {
+        ...typography.label,
+        color: colors.accent,
+        marginTop: spacing.md,
     },
 });

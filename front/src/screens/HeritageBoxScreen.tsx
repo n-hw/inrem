@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -6,12 +6,13 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 
 import { ScreenLayout } from '../components/ScreenLayout';
-import type { Asset } from '../api/client';
+import type { Asset, AssetType } from '../api/client';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
@@ -21,11 +22,26 @@ import { useAssets } from '../features/heritage/hooks/useAssets';
 import {
     ACTION_META,
     ASSET_TYPE_META,
+    ASSET_TYPE_ORDER,
     EMPTY_STATE_SUGGESTIONS,
 } from '../features/heritage/metadata';
 import { haptic } from '../utils/haptics';
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 export const HeritageBoxScreen = () => {
+    const [searchInput, setSearchInput] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [typeFilter, setTypeFilter] = useState<AssetType | null>(null);
+
+    useEffect(() => {
+        const handle = setTimeout(
+            () => setDebouncedSearch(searchInput),
+            SEARCH_DEBOUNCE_MS,
+        );
+        return () => clearTimeout(handle);
+    }, [searchInput]);
+
     const {
         assets,
         summary,
@@ -35,11 +51,13 @@ export const HeritageBoxScreen = () => {
         createAsset,
         updateAsset,
         deleteAsset,
-    } = useAssets();
+    } = useAssets({ search: debouncedSearch, typeFilter });
 
     const [mode, setMode] = useState<
         { kind: 'list' } | { kind: 'create'; suggested?: Partial<Asset> } | { kind: 'edit'; asset: Asset }
     >({ kind: 'list' });
+
+    const isFilterActive = !!debouncedSearch || typeFilter !== null;
 
     const grouped = useMemo(() => {
         const m: Record<string, Asset[]> = {};
@@ -116,6 +134,85 @@ export const HeritageBoxScreen = () => {
                 </View>
 
                 {summary && summary.total > 0 ? (
+                    <View style={styles.filterBlock}>
+                        <View style={styles.searchRow}>
+                            <Text style={styles.searchIcon}>🔍</Text>
+                            <TextInput
+                                value={searchInput}
+                                onChangeText={setSearchInput}
+                                placeholder="이름으로 검색"
+                                placeholderTextColor={colors.text.caption}
+                                style={styles.searchInput}
+                                autoCorrect={false}
+                                autoCapitalize="none"
+                                returnKeyType="search"
+                            />
+                            {searchInput.length > 0 ? (
+                                <TouchableOpacity
+                                    onPress={() => setSearchInput('')}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="검색어 지우기"
+                                    hitSlop={8}
+                                >
+                                    <Text style={styles.searchClear}>✕</Text>
+                                </TouchableOpacity>
+                            ) : null}
+                        </View>
+
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.chipRow}
+                        >
+                            <TouchableOpacity
+                                key="all"
+                                style={[
+                                    styles.chip,
+                                    typeFilter === null && styles.chipActive,
+                                ]}
+                                onPress={() => setTypeFilter(null)}
+                                activeOpacity={0.7}
+                                accessibilityRole="button"
+                            >
+                                <Text
+                                    style={[
+                                        styles.chipLabel,
+                                        typeFilter === null && styles.chipLabelActive,
+                                    ]}
+                                >
+                                    전체
+                                </Text>
+                            </TouchableOpacity>
+                            {ASSET_TYPE_ORDER.map((t) => {
+                                const count = summary.by_type[t] ?? 0;
+                                if (count === 0) return null;
+                                const meta = ASSET_TYPE_META[t];
+                                const active = typeFilter === t;
+                                return (
+                                    <TouchableOpacity
+                                        key={t}
+                                        style={[styles.chip, active && styles.chipActive]}
+                                        onPress={() => setTypeFilter(active ? null : t)}
+                                        activeOpacity={0.7}
+                                        accessibilityRole="button"
+                                    >
+                                        <Text style={styles.chipEmoji}>{meta.emoji}</Text>
+                                        <Text
+                                            style={[
+                                                styles.chipLabel,
+                                                active && styles.chipLabelActive,
+                                            ]}
+                                        >
+                                            {meta.label} {count}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+                ) : null}
+
+                {summary && summary.total > 0 ? (
                     <View style={styles.summaryCard}>
                         <Text style={[typography.label, { color: colors.text.caption }]}>
                             전체
@@ -161,6 +258,44 @@ export const HeritageBoxScreen = () => {
                 {isLoading && assets.length === 0 ? (
                     <View style={styles.loadingWrap}>
                         <ActivityIndicator size="large" color={colors.primary} />
+                    </View>
+                ) : assets.length === 0 && isFilterActive ? (
+                    <View style={styles.emptyWrap}>
+                        <Text style={styles.emptyEmoji}>🔍</Text>
+                        <Text
+                            style={[
+                                typography.body1,
+                                { color: colors.text.primary, textAlign: 'center' },
+                            ]}
+                        >
+                            조건에 맞는 자산이 없어요.
+                        </Text>
+                        <Text
+                            style={[
+                                typography.caption,
+                                {
+                                    color: colors.text.caption,
+                                    textAlign: 'center',
+                                    marginTop: spacing.xs,
+                                    marginBottom: spacing.lg,
+                                },
+                            ]}
+                        >
+                            검색어 또는 필터를 바꿔 보세요.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.clearFiltersButton}
+                            onPress={() => {
+                                setSearchInput('');
+                                setTypeFilter(null);
+                            }}
+                            activeOpacity={0.7}
+                            accessibilityRole="button"
+                        >
+                            <Text style={[typography.body2, { color: colors.primary }]}>
+                                필터 초기화
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 ) : assets.length === 0 ? (
                     <View style={styles.emptyWrap}>
@@ -281,6 +416,65 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
     summaryChipEmoji: { fontSize: 14, marginRight: 4 },
+    filterBlock: { marginBottom: spacing.md },
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.card,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        gap: spacing.sm,
+    },
+    searchIcon: { fontSize: 14 },
+    searchInput: {
+        flex: 1,
+        ...typography.body2,
+        color: colors.text.primary,
+        paddingVertical: 0,
+    },
+    searchClear: {
+        ...typography.body2,
+        color: colors.text.caption,
+        paddingHorizontal: spacing.xs,
+    },
+    chipRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        paddingVertical: spacing.sm,
+        paddingRight: spacing.lg,
+    },
+    chip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing.md,
+        paddingVertical: 6,
+        borderRadius: radius.full,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.border,
+        gap: 4,
+    },
+    chipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    chipEmoji: { fontSize: 13 },
+    chipLabel: {
+        ...typography.caption,
+        color: colors.text.secondary,
+    },
+    chipLabelActive: { color: colors.text.inverse, fontWeight: '600' },
+    clearFiltersButton: {
+        alignSelf: 'center',
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
     errorBanner: {
         backgroundColor: '#FCEBEA',
         borderRadius: radius.md,

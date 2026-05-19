@@ -146,6 +146,23 @@ export const settingsApi = {
 };
 
 // ──────────────────────────────────────────────────────────────────────────
+// Upsell / Paywall click logging (Premium conversion KPI validation).
+// See: document/PRD.md §2.1 goal 4.
+// ──────────────────────────────────────────────────────────────────────────
+
+export type UpsellFeature = 'family_share' | 'report_export' | 'extended_storage';
+
+export const upsellApi = {
+    /**
+     * Log a paywall card tap. Backend just records to structured logs;
+     * no DB write yet (analytics pipeline aggregates later).
+     */
+    logClick: async (feature: UpsellFeature, surface?: string): Promise<void> => {
+        await apiClient.post('/settings/upsell/click', { feature, surface });
+    },
+};
+
+// ──────────────────────────────────────────────────────────────────────────
 // Heritage Box (Stage 2 — Digital legacy inventory)
 // See: document/PRD.md §5.1
 // ──────────────────────────────────────────────────────────────────────────
@@ -203,7 +220,12 @@ export interface AssetSummary {
 }
 
 export const heritageApi = {
-    listAssets: async (params?: { type?: AssetType; limit?: number; offset?: number }): Promise<Asset[]> => {
+    listAssets: async (params?: {
+        type?: AssetType;
+        search?: string;
+        limit?: number;
+        offset?: number;
+    }): Promise<Asset[]> => {
         const response = await apiClient.get('/heritage/assets', { params });
         return response.data;
     },

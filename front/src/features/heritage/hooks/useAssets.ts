@@ -8,9 +8,17 @@ import {
     type Asset,
     type AssetCreatePayload,
     type AssetSummary,
+    type AssetType,
     type AssetUpdatePayload,
     heritageApi,
 } from '../../../api/client';
+
+export interface UseAssetsOptions {
+    /** Case-insensitive substring match on asset name. */
+    search?: string;
+    /** Filter by asset type. */
+    typeFilter?: AssetType | null;
+}
 
 export interface UseAssetsState {
     assets: Asset[];
@@ -23,7 +31,9 @@ export interface UseAssetsState {
     deleteAsset: (id: string) => Promise<void>;
 }
 
-export function useAssets(): UseAssetsState {
+export function useAssets(options: UseAssetsOptions = {}): UseAssetsState {
+    const { search, typeFilter } = options;
+
     const [assets, setAssets] = useState<Asset[]>([]);
     const [summary, setSummary] = useState<AssetSummary | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -33,8 +43,12 @@ export function useAssets(): UseAssetsState {
         setError(null);
         setIsLoading(true);
         try {
+            const trimmed = search?.trim() || undefined;
             const [list, sum] = await Promise.all([
-                heritageApi.listAssets(),
+                heritageApi.listAssets({
+                    search: trimmed,
+                    type: typeFilter ?? undefined,
+                }),
                 heritageApi.getSummary(),
             ]);
             setAssets(list);
@@ -45,7 +59,7 @@ export function useAssets(): UseAssetsState {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [search, typeFilter]);
 
     useEffect(() => {
         void refresh();

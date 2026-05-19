@@ -7,7 +7,7 @@ import { HeritageBoxScreen } from './HeritageBoxScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { colors } from '../theme/colors';
 
-type TabKey = 'home' | 'heritage' | 'settings';
+export type MainTabKey = 'home' | 'heritage' | 'settings';
 
 const TABS: TabItem[] = [
     { key: 'home', label: '홈', emoji: '🏠' },
@@ -16,19 +16,19 @@ const TABS: TabItem[] = [
 ];
 
 export const MainTabsScreen = () => {
-    const [active, setActive] = useState<TabKey>('home');
+    const [active, setActive] = useState<MainTabKey>('home');
 
     return (
         <View style={styles.container}>
             <View style={styles.body}>
-                {active === 'home' ? <HomeScreen /> : null}
+                {active === 'home' ? <HomeScreen onNavigate={setActive} /> : null}
                 {active === 'heritage' ? <HeritageBoxScreen /> : null}
                 {active === 'settings' ? <SettingsScreen /> : null}
             </View>
             <BottomTabBar
                 items={TABS}
                 activeKey={active}
-                onChange={(key) => setActive(key as TabKey)}
+                onChange={(key) => setActive(key as MainTabKey)}
             />
         </View>
     );
