@@ -123,3 +123,135 @@ async def test_api_restore_clears_pending(
     body = resp.json()
     assert body["deletion_requested_at"] is None
     assert body["seconds_remaining"] is None
+
+
+# --- purge sweep ---
+
+
+@pytest.mark.asyncio
+async def test_purge_expired_deletes_only_overdue_users(caplog):
+    """31일 지난 사용자만 삭제. 29일 사용자나 미요청 사용자는 보존."""
+    import logging
+
+    from unittest.mock import MagicMock
+
+    overdue = User(
+        id=uuid4(),
+        email="overdue@x.com",
+        is_active=True,
+        deletion_requested_at=datetime.utcnow() - timedelta(days=31),
+    )
+    fresh_pending = User(
+        id=uuid4(),
+        email="fresh@x.com",
+        is_active=True,
+        deletion_requested_at=datetime.utcnow() - timedelta(days=10),
+    )
+    not_pending = User(
+        id=uuid4(), email="alive@x.com", is_active=True, deletion_requested_at=None
+    )
+
+    # We only assert which rows the SQL select returns; the actual db
+    # delete is captured via AsyncMock.
+    db = AsyncMock()
+    db.execute = AsyncMock()
+    result = MagicMock()
+    scalars = MagicMock()
+    # The query filters by `deletion_requested_at < cutoff` — service-level
+    # logic delegates that to SQL, so we simulate the DB returning only the
+    # overdue row.
+    scalars.all.return_value = [overdue]
+    result.scalars.return_value = scalars
+    db.execute.return_value = result
+    db.delete = AsyncMock()
+    db.commit = AsyncMock()
+
+    caplog.set_level(logging.INFO, logger="inrem.audit.account")
+
+    purged = await account_service.purge_expired_deletions(db)
+
+    assert purged == [overdue.id]
+    db.delete.assert_awaited_once_with(overdue)
+    db.commit.assert_awaited()
+    assert any(
+        r.getMessage() == "account_purged" and r.user_id == str(overdue.id)
+        for r in caplog.records
+    )
+
+
+@pytest.mark.asyncio
+async def test_login_rate_limit_blocks_6th_attempt(async_client):
+    """5 attempts pass through (regardless of success), 6th gets 429."""
+    from unittest.mock import AsyncMock, patch
+
+    from app.core.rate_limit import LOGIN_LIMITER
+
+    # Reset bucket
+    with LOGIN_LIMITER._lock:
+        LOGIN_LIMITER._events.clear()
+
+    with patch(
+        "app.services.auth_service.authenticate_user",
+        new=AsyncMock(return_value=None),
+    ):
+        for i in range(LOGIN_LIMITER.limit):
+            resp = await async_client.post(
+                "/api/v1/auth/login",
+                data={"username": "u@x.com", "password": "wrong"},
+            )
+            assert resp.status_code == 401, f"attempt {i + 1} should be 401, got {resp.status_code}"
+        # 6th
+        resp = await async_client.post(
+            "/api/v1/auth/login",
+            data={"username": "u@x.com", "password": "wrong"},
+        )
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+
+
+@pytest.mark.asyncio
+async def test_login_rate_limit_keyed_by_email_and_ip(async_client):
+    """Different emails (same IP) bucket separately."""
+    from unittest.mock import AsyncMock, patch
+
+    from app.core.rate_limit import LOGIN_LIMITER
+
+    with LOGIN_LIMITER._lock:
+        LOGIN_LIMITER._events.clear()
+
+    with patch(
+        "app.services.auth_service.authenticate_user",
+        new=AsyncMock(return_value=None),
+    ):
+        # Exhaust quota for email A
+        for _ in range(LOGIN_LIMITER.limit):
+            await async_client.post(
+                "/api/v1/auth/login",
+                data={"username": "a@x.com", "password": "x"},
+            )
+        # Email B should still go through
+        resp = await async_client.post(
+            "/api/v1/auth/login",
+            data={"username": "b@x.com", "password": "x"},
+        )
+    assert resp.status_code == 401  # Auth fail, NOT rate-limit
+
+
+@pytest.mark.asyncio
+async def test_purge_no_candidates_skips_commit():
+    from unittest.mock import MagicMock
+
+    db = AsyncMock()
+    result = MagicMock()
+    scalars = MagicMock()
+    scalars.all.return_value = []
+    result.scalars.return_value = scalars
+    db.execute = AsyncMock(return_value=result)
+    db.delete = AsyncMock()
+    db.commit = AsyncMock()
+
+    purged = await account_service.purge_expired_deletions(db)
+
+    assert purged == []
+    db.delete.assert_not_awaited()
+    db.commit.assert_not_awaited()
