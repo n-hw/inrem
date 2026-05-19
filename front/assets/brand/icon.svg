@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  InRem App Icon — "Quiet Watch"
+  ──────────────────────────────
+  컨셉: 새벽 능선 위 떠 있는 달.
+  · Deep Ocean Blue 배경 = 깊은 시간, 평정
+  · Warm Sand 달 = 따뜻하지만 절제된 시선
+  · Soft Sage 능선 = 자연·연속성·생애 주기
+  의료적/경고적 느낌 없이 "조용히 지켜본다"는 브랜드 가치를 전달.
+-->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- 배경: Deep Ocean Blue solid (iOS 가 라운드 마스크 처리) -->
+  <rect width="1024" height="1024" fill="#003366"/>
+
+  <!-- 부드러운 야간 그라데이션 (위→아래, 위는 살짝 밝게) -->
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0A4577" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#003366" stop-opacity="1"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"   stop-color="#D4C4B5" stop-opacity="0.35"/>
+      <stop offset="60%"  stop-color="#D4C4B5" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#D4C4B5" stop-opacity="0.00"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#skyGrad)"/>
+
+  <!-- 달 주변 은은한 글로우 -->
+  <circle cx="512" cy="400" r="220" fill="url(#moonGlow)"/>
+
+  <!-- 달 (Warm Sand) -->
+  <circle cx="512" cy="400" r="120" fill="#D4C4B5"/>
+
+  <!-- 능선 (Soft Sage, 부드러운 베지에 곡선)
+       두 겹: 뒤쪽 능선 (옅음) + 앞쪽 능선 (진함) -->
+
+  <!-- 뒤쪽 능선 -->
+  <path d="
+    M 0 720
+    C 160 660, 260 640, 380 680
+    C 520 730, 600 670, 720 690
+    C 820 705, 900 700, 1024 720
+    L 1024 1024
+    L 0 1024 Z
+  " fill="#7E8A6C" opacity="0.55"/>
+
+  <!-- 앞쪽 능선 -->
+  <path d="
+    M 0 800
+    C 130 740, 240 770, 360 790
+    C 480 810, 580 740, 700 770
+    C 820 800, 920 780, 1024 800
+    L 1024 1024
+    L 0 1024 Z
+  " fill="#B2AC88"/>
+
+</svg>

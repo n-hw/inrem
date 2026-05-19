@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  InRem Splash Screen
+  ───────────────────
+  iPhone 14 Pro Max 기준 1242x2688 (Expo는 cover 모드로 다른 비율도 대응).
+  중앙: 아이콘 + 워드마크. 하단: 한 줄 태그라인.
+-->
+<svg width="1242" height="2688" viewBox="0 0 1242 2688" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0A4577" stop-opacity="1"/>
+      <stop offset="60%"  stop-color="#003366" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#022548" stop-opacity="1"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"   stop-color="#D4C4B5" stop-opacity="0.35"/>
+      <stop offset="60%"  stop-color="#D4C4B5" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#D4C4B5" stop-opacity="0.00"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1242" height="2688" fill="url(#skyGrad)"/>
+
+  <!-- 달 글로우 + 달 -->
+  <circle cx="621" cy="1100" r="280" fill="url(#moonGlow)"/>
+  <circle cx="621" cy="1100" r="150" fill="#D4C4B5"/>
+
+  <!-- 능선 (스크린 폭 전체) -->
+  <path d="
+    M 0 1480
+    C 200 1400, 360 1380, 520 1430
+    C 700 1490, 820 1410, 960 1440
+    C 1080 1465, 1180 1450, 1242 1465
+    L 1242 1700
+    L 0 1700 Z
+  " fill="#7E8A6C" opacity="0.55"/>
+
+  <path d="
+    M 0 1580
+    C 180 1510, 320 1540, 480 1570
+    C 640 1600, 760 1510, 920 1550
+    C 1080 1590, 1180 1570, 1242 1580
+    L 1242 1800
+    L 0 1800 Z
+  " fill="#B2AC88"/>
+
+  <!-- 워드마크 -->
+  <text x="621" y="2080"
+        font-family="-apple-system, 'SF Pro Display', 'Pretendard', 'Apple SD Gothic Neo', sans-serif"
+        font-size="120" font-weight="300"
+        fill="#D4C4B5" text-anchor="middle"
+        letter-spacing="6">InRem</text>
+
+  <!-- 태그라인 -->
+  <text x="621" y="2180"
+        font-family="-apple-system, 'Pretendard', 'Apple SD Gothic Neo', sans-serif"
+        font-size="38" font-weight="400"
+        fill="#B2AC88" text-anchor="middle"
+        letter-spacing="3"
+        opacity="0.85">조용히 지켜드릴게요</text>
+
+</svg>

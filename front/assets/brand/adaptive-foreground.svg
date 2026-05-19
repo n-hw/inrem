@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Android Adaptive Icon — Foreground Layer
+  ────────────────────────────────────────
+  요소를 중앙 660x660 "safe area" 안에 배치 (Android 가 가장자리를 잘라
+  마스크할 수 있음). 배경은 별도 색상 레이어 (app.json 에서 지정).
+-->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"   stop-color="#D4C4B5" stop-opacity="0.35"/>
+      <stop offset="60%"  stop-color="#D4C4B5" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#D4C4B5" stop-opacity="0.00"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Safe area: (182,182) ~ (842,842) — 모든 시각 요소는 이 안에 -->
+
+  <!-- 달 글로우 -->
+  <circle cx="512" cy="430" r="170" fill="url(#moonGlow)"/>
+
+  <!-- 달 -->
+  <circle cx="512" cy="430" r="95" fill="#D4C4B5"/>
+
+  <!-- 뒤쪽 능선 (safe area 내) -->
+  <path d="
+    M 182 670
+    C 290 630, 360 620, 450 650
+    C 560 690, 620 650, 700 660
+    C 770 670, 820 670, 842 680
+    L 842 842
+    L 182 842 Z
+  " fill="#7E8A6C" opacity="0.55"/>
+
+  <!-- 앞쪽 능선 -->
+  <path d="
+    M 182 730
+    C 270 690, 350 705, 430 720
+    C 510 735, 580 690, 660 710
+    C 740 730, 800 720, 842 730
+    L 842 842
+    L 182 842 Z
+  " fill="#B2AC88"/>
+
+</svg>
