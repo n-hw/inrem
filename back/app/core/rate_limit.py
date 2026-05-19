@@ -59,3 +59,10 @@ Conservative: any attempt — success or fail — counts. Brute-force gets
 blocked quickly; a legitimate user fat-fingering their password 5 times
 also gets blocked, but the message tells them to wait 1 minute.
 """
+
+GUARDIAN_INVITE_LIMITER = SlidingWindowRateLimiter(limit=5, window_seconds=3600.0)
+"""Per-user limiter for `/guardian/invite` (5 invitations / hour).
+
+Prevents invitation code spam + protects the in-memory `_invitation_codes`
+dict from DoS.
+"""
