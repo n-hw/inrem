@@ -3,6 +3,34 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (오전) — 시각 QA 보완 + Alert→inline 에러 배너
+
+### Fixed (Bug #3, visual QA 도중 발견)
+- **`Alert.alert` invisible on RN Web** → LoginScreen / SignupScreen
+  은 사용자 입력 에러를 alert dialog 로 띄우는데 Web 에서 안 보임.
+  inline `errorBanner` state + `<View>` 로 교체. Web/Native 모두
+  동일하게 노출.
+
+### Added
+- `scripts/qa_web_visual.py` — Playwright 17 시나리오:
+  · Login 화면 직접 노출
+  · 잘못된 로그인 → 빨간 배너 노출 검증
+  · HomeScreen 페이월 카드 (Premium 배지 + 가족공유)
+  · 유산함 빈 상태 추천 5종 + 자산 폼 6필드
+  · 시크릿 입력 → "30초 후 클립보드 비움" 안내
+  · 자산 저장 후 목록 (검색바·필터 칩·요약 카드)
+  · 설정 위험 영역 (계정 삭제 + PIPA 30일 안내)
+  · runtime console.error 0 (의도된 401 4xx 부산물 제외)
+- 보완 스크린샷 (`/tmp/inrem-qa-screenshots/visual-*`,
+  `extra-*-bottom.png`) — ScrollView 내부 강제 스크롤로 페이월 카드·
+  위험 영역까지 풀 캡처.
+
+### Verified
+- 시각 QA **17/17** 통과.
+- 누적 109/109: 백엔드 28 + 프론트 happy 12 + 프론트 visual 17 + pytest 52.
+
+---
+
 ## [Unreleased] - 2026-05-19 (이른아침) — Cross-user FK SET NULL + E2E QA
 
 ### Fixed (실제 production bug 2건 — QA 도중 발견)
