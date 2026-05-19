@@ -1,9 +1,35 @@
 """Schemas for Settings API (MonitoringPolicy)."""
 
 from datetime import time
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 from app.models.monitoring_policy import SensitivityLevel
+
+
+UpsellFeature = Literal["family_share", "report_export", "extended_storage"]
+
+
+class UpsellClickRequest(BaseModel):
+    """Premium 기능 페이월 카드 클릭 이벤트.
+
+    결제 모듈 구현 전 단계의 **전환 가설 검증**용 — DB 저장 없이 logger 만 남긴다.
+    """
+
+    feature: UpsellFeature = Field(
+        description="어떤 유료 기능 카드를 탭했는지 (예: 'family_share')."
+    )
+    surface: str | None = Field(
+        default=None,
+        max_length=40,
+        description="UI 노출 위치 (예: 'home', 'settings'). 분석용.",
+    )
+
+
+class UpsellClickResponse(BaseModel):
+    success: bool
+    feature: UpsellFeature
 
 
 class MonitoringPolicyResponse(BaseModel):

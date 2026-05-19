@@ -27,6 +27,11 @@ async def list_assets(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
     type_filter: str | None = Query(default=None, alias="type"),
+    search: str | None = Query(
+        default=None,
+        max_length=120,
+        description="이름 부분 일치 검색 (대소문자 무시).",
+    ),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ):
@@ -35,6 +40,7 @@ async def list_assets(
         db,
         user_id=current_user.id,
         type_filter=type_filter,
+        search=search,
         limit=limit,
         offset=offset,
     )

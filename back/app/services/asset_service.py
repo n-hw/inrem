@@ -45,11 +45,17 @@ async def list_assets(
     *,
     user_id: UUID,
     type_filter: str | None = None,
+    search: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[AssetResponse]:
     rows = await asset_repository.list_by_user(
-        db, user_id, type_filter=type_filter, limit=limit, offset=offset
+        db,
+        user_id,
+        type_filter=type_filter,
+        search=search,
+        limit=limit,
+        offset=offset,
     )
     return [_to_response(a) for a in rows]
 

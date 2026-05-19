@@ -181,6 +181,27 @@ async def test_api_list_assets(async_client, override_deps, mock_user):
 
 
 @pytest.mark.asyncio
+async def test_api_list_assets_passes_search_and_type(
+    async_client, override_deps, mock_user
+):
+    """The `search` and `type` query params must be forwarded into the service."""
+    with patch(
+        "app.services.asset_service.list_assets",
+        new=AsyncMock(return_value=[]),
+    ) as svc:
+        resp = await async_client.get(
+            "/api/v1/heritage/assets",
+            headers={"Authorization": "Bearer test"},
+            params={"search": "Netflix", "type": "subscription"},
+        )
+    assert resp.status_code == 200
+    svc.assert_called_once()
+    kwargs = svc.call_args.kwargs
+    assert kwargs["search"] == "Netflix"
+    assert kwargs["type_filter"] == "subscription"
+
+
+@pytest.mark.asyncio
 async def test_api_create_asset(async_client, override_deps, mock_user):
     created = asset_service._to_response(_make_asset(mock_user.id, name="Crypto"))
 

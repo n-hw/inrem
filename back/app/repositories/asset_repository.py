@@ -15,10 +15,14 @@ async def list_by_user(
     user_id: UUID,
     *,
     type_filter: str | None = None,
+    search: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> Sequence[Asset]:
-    """Return paginated assets owned by `user_id`, newest first."""
+    """Return paginated assets owned by `user_id`, newest first.
+
+    `search` does a case-insensitive substring match on `name`.
+    """
     stmt = (
         select(Asset)
         .where(Asset.user_id == user_id)
@@ -28,6 +32,8 @@ async def list_by_user(
     )
     if type_filter:
         stmt = stmt.where(Asset.type == type_filter)
+    if search:
+        stmt = stmt.where(Asset.name.ilike(f"%{search}%"))
     result = await db.execute(stmt)
     return result.scalars().all()
 
