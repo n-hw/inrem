@@ -64,7 +64,10 @@ class Asset(Base):
         default=ActionOnDeath.KEEP_PRIVATE,
     )
     designated_executor_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+        UUID(as_uuid=True),
+        # 다른 사용자가 삭제되어도 자산 자체는 보존하되 지정인만 NULL.
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # Freeform memo

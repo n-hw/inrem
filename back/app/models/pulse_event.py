@@ -50,8 +50,13 @@ class PulseEvent(Base):
     guardian_notified_at = Column(DateTime, nullable=True)
     resolved_at = Column(DateTime, nullable=True)
     
-    # Resolution details
-    resolved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # User or Guardian who resolved
+    # Resolution details — resolver 가 다른 사용자(보호자) 일 수 있다.
+    # 해당 사용자가 삭제돼도 이벤트는 보존하고 resolved_by 만 NULL 로.
+    resolved_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     resolution_method = Column(String, nullable=True)  # "user_response", "guardian_call", "auto_timeout"
     resolution_note = Column(Text, nullable=True)
     
