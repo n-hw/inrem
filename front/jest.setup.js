@@ -21,8 +21,4 @@ jest.mock('expo-haptics', () => ({
     },
 }));
 
-jest.mock('@react-navigation/native', () => ({
-    useNavigation: () => ({
-        navigate: jest.fn(),
-    }),
-}));
+// 참고: @react-navigation/native 는 사용하지 않음 (BottomTabBar 자체 구현).
