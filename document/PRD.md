@@ -104,15 +104,16 @@ Asset
 ├── created_at, updated_at: datetime
 ```
 
-#### 5.1.2 API 엔드포인트 (`/api/v1/heritage`)
+#### 5.1.2 API 엔드포인트
 | Method | Path | 설명 |
 | --- | --- | --- |
-| GET | `/assets` | 본인 자산 목록 (페이지네이션) |
-| POST | `/assets` | 자산 생성 |
-| GET | `/assets/{id}` | 자산 상세 |
-| PATCH | `/assets/{id}` | 자산 수정 |
-| DELETE | `/assets/{id}` | 자산 삭제 |
-| GET | `/assets/summary` | 타입별 집계 (개수, 사후 처리 분포) |
+| GET | `/api/v1/heritage/assets` | 본인 자산 목록 (페이지네이션) |
+| POST | `/api/v1/heritage/assets` | 자산 생성 |
+| GET | `/api/v1/heritage/assets/{id}` | 자산 상세 |
+| PATCH | `/api/v1/heritage/assets/{id}` | 자산 수정 |
+| DELETE | `/api/v1/heritage/assets/{id}` | 자산 삭제 |
+| GET | `/api/v1/heritage/assets/summary` | 타입별 집계 (개수, 사후 처리 분포) |
+| GET | `/api/v1/heritage/assets/{id}/secret` | 암호화된 민감 정보 복호화 조회 |
 
 #### 5.1.3 권한 & 보안
 - 본인 외 조회 불가 (executor 권한은 v1.1).

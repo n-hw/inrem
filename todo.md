@@ -9,7 +9,7 @@
 ### ✅ 완료 (Completed)
 - [x] **브랜드 테마 정의**: Deep Ocean Blue & Soft Sage 색상 팔레트 적용.
 - [x] **UI 폴리싱**: 로그인/회원가입/설정 화면에 새로운 디자인 시스템 적용 및 스타일 개선.
-- [x] **이메일 백업 구조**: 서비스 스켈레톤 구현 및 알림 서비스(Notification Service) 연동.
+- [x] **이메일 백업 구조 (MVP 스켈레톤)**: `MockEmailProvider` 기반 서비스 스켈레톤 구현 및 알림 서비스(Notification Service) 연동. _실제 외부 프로바이더(SendGrid/Mailgun) 연동은 아래 "진행 예정"에서 별도 항목으로 진행._
 - [x] **타이머 상태 관리 백엔드 (Task 22)**:
     - DB 스키마 (`UserConfig`, `TimerStatus`) 설계 및 마이그레이션.
     - 타이머 리셋 로직 (`TimerService`) 및 API (`/api/v1/timer/reset`) 구현.
@@ -24,6 +24,10 @@
     - 이메일 전송조차 실패할 경우를 대비한 3중 안전장치(SMS Fallback) 로직 추가.
 - [ ] **통합 테스트 (Integration Testing)**:
     - 전체 루프 E2E 테스트: `비활동 감지 -> 소프트 체크인 -> 무응답 -> 하드 체크인 (푸시 -> 실패 감지 -> 이메일 발송)`.
+
+---
+
+> ⚠️ **v1.0 범위 밖 (Out of Scope for v1.0).** 아래 Phase 5 이후 항목은 `PRD.md` 2.2절 비목표(Non-Goals)에 해당하며, v1.0 GA 이후 단계적으로 착수한다.
 
 ---
 

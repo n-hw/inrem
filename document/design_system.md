@@ -114,14 +114,15 @@
 
 ### 6.1 기본 컴포넌트
 
-| 컴포넌트 | 위치 | 핵심 props |
-| --- | --- | --- |
-| `Button` (Primary/Secondary/Ghost) | `components/Button.tsx` *(신규)* | variant, size, loading, disabled |
-| `Card` | `components/Card.tsx` *(신규)* | title, subtitle, onPress |
-| `TextField` | `components/TextField.tsx` *(신규)* | label, error, secureTextEntry |
-| `ScreenLayout` | `components/ScreenLayout.tsx` | (이미 존재) |
-| `CircularTimer` | `components/CircularTimer.tsx` | (이미 존재) |
-| `SwipeToConfirm` | `components/SwipeToConfirm.tsx` | (이미 존재) |
+| 컴포넌트 | 위치 | 상태 | 핵심 props |
+| --- | --- | --- | --- |
+| `Button` (Primary/Secondary/Ghost) | `components/Button.tsx` | 🚧 Planned | variant, size, loading, disabled |
+| `Card` | `components/Card.tsx` | 🚧 Planned | title, subtitle, onPress |
+| `TextField` | `components/TextField.tsx` | 🚧 Planned | label, error, secureTextEntry |
+| `ScreenLayout` | `components/ScreenLayout.tsx` | ✅ Implemented | — |
+| `CircularTimer` | `components/CircularTimer.tsx` | ✅ Implemented | size, progress, label |
+| `SwipeToConfirm` | `components/SwipeToConfirm.tsx` | ✅ Implemented | onConfirm, label |
+| `BottomTabBar` | `components/BottomTabBar.tsx` | ✅ Implemented | tabs, activeKey, onChange |
 
 ### 6.2 도메인 컴포넌트 (Heritage Box)
 | 컴포넌트 | 위치 | 설명 |
