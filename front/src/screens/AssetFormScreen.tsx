@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -9,6 +9,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+
+const CLIPBOARD_CLEAR_DELAY_MS = 30_000;
 
 import { ScreenLayout } from '../components/ScreenLayout';
 import type {
@@ -56,6 +59,48 @@ export const AssetFormScreen = ({
     const [clearSecret, setClearSecret] = useState<boolean>(false);
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [clipboardWiped, setClipboardWiped] = useState<boolean>(false);
+
+    // Schedule a clipboard wipe whenever the user types/pastes into the secret
+    // field. If the OS clipboard contains the exact value we hold in state at
+    // wipe-time, clear it — this catches the common "pasted my password and
+    // forgot to clear" footgun without ever reading other clipboard content
+    // (we only call hasString + getString once, then setString to ""). 사용
+    // 자가 다른 곳에서 더 새 값을 복사했다면 (값 불일치) 건드리지 않는다.
+    const wipeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (!secret) return;
+        if (wipeTimer.current) clearTimeout(wipeTimer.current);
+        setClipboardWiped(false);
+        wipeTimer.current = setTimeout(async () => {
+            try {
+                const current = await Clipboard.getStringAsync();
+                if (current && current === secret) {
+                    await Clipboard.setStringAsync('');
+                    setClipboardWiped(true);
+                }
+            } catch (e) {
+                console.warn('clipboard wipe failed', e);
+            }
+        }, CLIPBOARD_CLEAR_DELAY_MS);
+        return () => {
+            if (wipeTimer.current) clearTimeout(wipeTimer.current);
+        };
+    }, [secret]);
+
+    // On unmount: if a secret was entered, proactively wipe clipboard once
+    // more in case the timer hadn't fired yet.
+    useEffect(() => {
+        return () => {
+            if (!secret) return;
+            Clipboard.getStringAsync()
+                .then((current) => {
+                    if (current === secret) Clipboard.setStringAsync('');
+                })
+                .catch(() => {});
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const isEditing = Boolean(editingId);
     const hadSecret = Boolean(initial?.has_secret);
@@ -227,6 +272,13 @@ export const AssetFormScreen = ({
                             </TouchableOpacity>
                         ) : null}
                     </View>
+                    {secret ? (
+                        <Text style={styles.clipboardHint}>
+                            {clipboardWiped
+                                ? '🧹 클립보드를 자동으로 비웠어요.'
+                                : '🔒 30초 후 클립보드를 자동으로 비울게요.'}
+                        </Text>
+                    ) : null}
 
                     {/* Note */}
                     <Text style={styles.label}>메모 (선택)</Text>
@@ -363,6 +415,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginTop: spacing.xs,
+        paddingHorizontal: spacing.xs,
+    },
+    clipboardHint: {
+        ...typography.caption,
+        color: colors.text.caption,
+        fontSize: 11,
         marginTop: spacing.xs,
         paddingHorizontal: spacing.xs,
     },

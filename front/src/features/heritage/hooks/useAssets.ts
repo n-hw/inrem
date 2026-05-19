@@ -10,6 +10,7 @@ import {
     type AssetSummary,
     type AssetType,
     type AssetUpdatePayload,
+    describeError,
     heritageApi,
 } from '../../../api/client';
 
@@ -55,7 +56,7 @@ export function useAssets(options: UseAssetsOptions = {}): UseAssetsState {
             setSummary(sum);
         } catch (e) {
             console.error('[useAssets] refresh failed', e);
-            setError('자산을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+            setError(describeError(e, '자산을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));
         } finally {
             setIsLoading(false);
         }

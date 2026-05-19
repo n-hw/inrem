@@ -4,6 +4,7 @@ import { ScreenLayout } from '../components/ScreenLayout';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { useAuth } from '../context/AuthContext';
+import { describeError } from '../api/client';
 import { haptic } from '../utils/haptics';
 
 interface LoginScreenProps {
@@ -28,9 +29,12 @@ export const LoginScreen = ({ onNavigateToSignup }: LoginScreenProps) => {
         try {
             await login(email, password);
             await haptic.success();
-        } catch (_error) {
+        } catch (error) {
             await haptic.error();
-            Alert.alert('로그인 실패', '이메일 또는 비밀번호가 올바르지 않습니다.');
+            Alert.alert(
+                '로그인 실패',
+                describeError(error, '이메일 또는 비밀번호가 올바르지 않아요.'),
+            );
         } finally {
             setIsLoading(false);
         }

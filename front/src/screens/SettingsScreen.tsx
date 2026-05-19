@@ -14,6 +14,7 @@ import { typography } from '../theme/typography';
 import {
     accountApi,
     type DeletionStatus,
+    describeError,
     settingsApi,
     MonitoringPolicy,
     SensitivityLevel,
@@ -55,8 +56,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
                         try {
                             const status = await accountApi.requestDeletion();
                             setDeletionStatus(status);
-                        } catch (_e) {
-                            Alert.alert('오류', '삭제 요청에 실패했어요. 다시 시도해 주세요.');
+                        } catch (e) {
+                            Alert.alert('삭제 요청 실패', describeError(e, '삭제 요청에 실패했어요.'));
                         }
                     },
                 },
@@ -68,12 +69,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         try {
             const status = await accountApi.restore();
             setDeletionStatus(status);
-        } catch (e: any) {
-            if (e?.response?.status === 410) {
-                Alert.alert('복구 불가', '삭제 유예 기간이 만료되어 복구할 수 없습니다.');
-            } else {
-                Alert.alert('오류', '복구에 실패했어요. 다시 시도해 주세요.');
-            }
+        } catch (e) {
+            Alert.alert('복구 실패', describeError(e, '복구에 실패했어요.'));
         }
     }, []);
 
@@ -82,8 +79,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
             setLoading(true);
             const data = await settingsApi.getPolicy();
             setPolicy(data);
-        } catch (_error) {
-            Alert.alert('오류', '설정을 불러오는데 실패했습니다.');
+        } catch (error) {
+            Alert.alert('설정 불러오기 실패', describeError(error, '설정을 불러오지 못했어요.'));
         } finally {
             setLoading(false);
         }
@@ -96,8 +93,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
             setSaving(true);
             const updated = await settingsApi.updatePolicy(updates);
             setPolicy(updated);
-        } catch (_error) {
-            Alert.alert('오류', '설정 저장에 실패했습니다.');
+        } catch (error) {
+            Alert.alert('저장 실패', describeError(error, '설정 저장에 실패했어요.'));
         } finally {
             setSaving(false);
         }
