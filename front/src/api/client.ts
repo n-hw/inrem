@@ -62,6 +62,25 @@ export const authApi = {
     },
 };
 
+export interface DeletionStatus {
+    deletion_requested_at: string | null;
+    grace_period_days: number;
+    seconds_remaining: number | null;
+}
+
+export const accountApi = {
+    /** PIPA 잊혀질 권리: 계정 삭제 요청 (30일 grace, idempotent). */
+    requestDeletion: async (): Promise<DeletionStatus> => {
+        const response = await apiClient.delete('/auth/me');
+        return response.data;
+    },
+    /** Grace 기간 중 삭제 요청 취소. 410 시 grace 만료. */
+    restore: async (): Promise<DeletionStatus> => {
+        const response = await apiClient.post('/auth/me/restore');
+        return response.data;
+    },
+};
+
 export type SignalType = 'app_open' | 'app_foreground' | 'touch_event' | 'heartbeat' | 'manual_checkin';
 
 export interface HeartbeatResponse {

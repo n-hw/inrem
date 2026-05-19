@@ -53,10 +53,12 @@ export const AssetFormScreen = ({
     const [note, setNote] = useState<string>(initial?.note ?? '');
     const [secret, setSecret] = useState<string>('');
     const [showSecret, setShowSecret] = useState<boolean>(false);
+    const [clearSecret, setClearSecret] = useState<boolean>(false);
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const isEditing = Boolean(editingId);
+    const hadSecret = Boolean(initial?.has_secret);
     const canSubmit = name.trim().length > 0 && !submitting;
 
     const handleSubmit = async () => {
@@ -71,6 +73,7 @@ export const AssetFormScreen = ({
                 action_on_death: action,
                 note: note.trim() || null,
                 secret: secret.length > 0 ? secret : undefined,
+                clear_secret: clearSecret || undefined,
             });
         } catch (e) {
             console.error('AssetFormScreen submit failed', e);
@@ -157,13 +160,43 @@ export const AssetFormScreen = ({
                             <Text style={styles.encryptedTagText}>🔒 암호화 저장</Text>
                         </View>
                     </View>
+
+                    {hadSecret && !clearSecret ? (
+                        <View style={styles.savedSecretBanner}>
+                            <Text style={[typography.caption, { color: colors.text.secondary }]}>
+                                저장된 비밀이 있어요. 비워두면 그대로 유지됩니다.
+                            </Text>
+                        </View>
+                    ) : null}
+
+                    {clearSecret ? (
+                        <View style={styles.clearSecretBanner}>
+                            <Text style={[typography.caption, { color: colors.danger, flex: 1 }]}>
+                                저장 시 기존 비밀이 삭제됩니다.
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setClearSecret(false)}
+                                accessibilityRole="button"
+                                accessibilityLabel="삭제 취소"
+                                hitSlop={8}
+                            >
+                                <Text style={[typography.caption, { color: colors.primary }]}>
+                                    되돌리기
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : null}
+
                     <TextInput
                         style={styles.input}
                         value={secret}
-                        onChangeText={setSecret}
+                        onChangeText={(v) => {
+                            setSecret(v);
+                            if (v.length > 0 && clearSecret) setClearSecret(false);
+                        }}
                         placeholder={
-                            isEditing && initial?.has_secret
-                                ? '값을 입력하면 기존 정보를 덮어씁니다'
+                            hadSecret
+                                ? '새 값을 입력하면 교체됩니다 (비워두면 유지)'
                                 : '저장하면 본인만 열람할 수 있어요'
                         }
                         placeholderTextColor={colors.text.caption}
@@ -171,14 +204,29 @@ export const AssetFormScreen = ({
                         autoCapitalize="none"
                         accessibilityLabel="민감 정보"
                     />
-                    <TouchableOpacity
-                        onPress={() => setShowSecret((s) => !s)}
-                        style={styles.toggleSecretBtn}
-                    >
-                        <Text style={[typography.caption, { color: colors.primary }]}>
-                            {showSecret ? '숨기기' : '보기'}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.secretActionRow}>
+                        <TouchableOpacity
+                            onPress={() => setShowSecret((s) => !s)}
+                        >
+                            <Text style={[typography.caption, { color: colors.primary }]}>
+                                {showSecret ? '숨기기' : '보기'}
+                            </Text>
+                        </TouchableOpacity>
+                        {hadSecret && !clearSecret ? (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setSecret('');
+                                    setClearSecret(true);
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel="저장된 비밀 삭제"
+                            >
+                                <Text style={[typography.caption, { color: colors.danger }]}>
+                                    저장된 비밀 삭제
+                                </Text>
+                            </TouchableOpacity>
+                        ) : null}
+                    </View>
 
                     {/* Note */}
                     <Text style={styles.label}>메모 (선택)</Text>
@@ -293,6 +341,30 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-end',
         paddingVertical: spacing.xs,
         marginTop: spacing.xs,
+    },
+    savedSecretBanner: {
+        backgroundColor: `${colors.primary}0E`,
+        borderRadius: radius.sm,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        marginBottom: spacing.sm,
+    },
+    clearSecretBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: `${colors.danger}10`,
+        borderRadius: radius.sm,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        marginBottom: spacing.sm,
+        gap: spacing.sm,
+    },
+    secretActionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: spacing.xs,
+        paddingHorizontal: spacing.xs,
     },
     primaryBtn: {
         marginTop: spacing.xl,

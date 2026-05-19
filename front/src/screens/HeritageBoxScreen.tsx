@@ -251,7 +251,20 @@ export const HeritageBoxScreen = () => {
 
                 {error ? (
                     <View style={styles.errorBanner}>
-                        <Text style={[typography.body2, { color: colors.danger }]}>{error}</Text>
+                        <Text style={[typography.body2, { color: colors.danger, flex: 1 }]}>
+                            {error}
+                        </Text>
+                        <TouchableOpacity
+                            onPress={refresh}
+                            accessibilityRole="button"
+                            accessibilityLabel="다시 시도"
+                            style={styles.retryButton}
+                            hitSlop={8}
+                        >
+                            <Text style={[typography.label, { color: colors.danger }]}>
+                                다시 시도
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 ) : null}
 
@@ -476,10 +489,20 @@ const styles = StyleSheet.create({
         borderColor: colors.primary,
     },
     errorBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#FCEBEA',
         borderRadius: radius.md,
         padding: spacing.md,
         marginBottom: spacing.md,
+        gap: spacing.md,
+    },
+    retryButton: {
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        borderColor: colors.danger,
     },
     loadingWrap: {
         flex: 1,

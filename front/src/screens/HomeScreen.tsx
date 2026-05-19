@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     RefreshControl,
     ScrollView,
@@ -32,9 +33,14 @@ interface Props {
 
 export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
     const { user } = useAuth();
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [thresholdHours, setThresholdHours] = useState(12);
-    const [lastActiveAt, setLastActiveAt] = useState<Date>(new Date());
+    /**
+     * `null` until the first /signal/heartbeat response arrives. We avoid
+     * seeding with `new Date()` because that paints a full-bar timer that
+     * then jumps to the correct value once the server replies.
+     */
+    const [lastActiveAt, setLastActiveAt] = useState<Date | null>(null);
     const [remainingSeconds, setRemainingSeconds] = useState(0);
     const [heritageSummary, setHeritageSummary] = useState<AssetSummary | null>(null);
 
@@ -68,10 +74,10 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
         fetchData();
     }, [fetchData]);
 
-    // Timer Logic
+    // Timer Logic — only runs after we have a real last_active_at from the server.
     useEffect(() => {
+        if (!lastActiveAt) return;
         const calculateRemaining = () => {
-            if (!lastActiveAt) return;
             const now = new Date();
             const thresholdMs = thresholdHours * 60 * 60 * 1000;
             const elapsed = now.getTime() - lastActiveAt.getTime();
@@ -155,12 +161,26 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
                 </View>
 
                 <View style={styles.timerContainer}>
-                    <CircularTimer
-                        percentage={percentage}
-                        remainingText={formatTime(remainingSeconds)}
-                        subText="다음 확인까지"
-                        status={getStatus()}
-                    />
+                    {lastActiveAt ? (
+                        <CircularTimer
+                            percentage={percentage}
+                            remainingText={formatTime(remainingSeconds)}
+                            subText="다음 확인까지"
+                            status={getStatus()}
+                        />
+                    ) : (
+                        <View style={styles.timerPlaceholder}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                            <Text
+                                style={[
+                                    typography.caption,
+                                    { color: colors.text.caption, marginTop: spacing.md },
+                                ]}
+                            >
+                                상태 확인 중…
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.actionContainer}>
@@ -254,6 +274,12 @@ const styles = StyleSheet.create({
     },
     timerContainer: {
         marginBottom: 40,
+    },
+    timerPlaceholder: {
+        height: 280,
+        width: 280,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     actionContainer: {
         alignItems: 'center',
