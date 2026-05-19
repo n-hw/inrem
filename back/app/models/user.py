@@ -36,6 +36,9 @@ class User(Base):
     wards = relationship(
         "Guardian",
         foreign_keys="Guardian.guardian_id",
-        back_populates="guardian",
         lazy="dynamic",
     )
+
+    # Timer relationships (Task 22)
+    config = relationship("UserConfig", back_populates="user", uselist=False)
+    timer_status = relationship("TimerStatus", back_populates="user", uselist=False)

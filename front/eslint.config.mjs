@@ -15,5 +15,16 @@ export default tseslint.config(
                 caughtErrorsIgnorePattern: '^_',
             }],
         },
+    },
+    {
+        files: ['**/*.js', '**/*.config.js', '**/*.setup.js'],
+        languageOptions: {
+            globals: {
+                module: 'readonly',
+                require: 'readonly',
+                process: 'readonly',
+                jest: 'readonly',
+            }
+        }
     }
 );

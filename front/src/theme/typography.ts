@@ -40,4 +40,11 @@ export const typography = {
         fontSize: 14,
         lineHeight: 20,
     } as TextStyle,
+
+    // Label: Small text
+    label: {
+        fontFamily: fontFamily.medium,
+        fontSize: 12,
+        lineHeight: 16,
+    } as TextStyle,
 };

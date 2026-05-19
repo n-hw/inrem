@@ -10,6 +10,10 @@
 - [x] **브랜드 테마 정의**: Deep Ocean Blue & Soft Sage 색상 팔레트 적용.
 - [x] **UI 폴리싱**: 로그인/회원가입/설정 화면에 새로운 디자인 시스템 적용 및 스타일 개선.
 - [x] **이메일 백업 구조**: 서비스 스켈레톤 구현 및 알림 서비스(Notification Service) 연동.
+- [x] **타이머 상태 관리 백엔드 (Task 22)**:
+    - DB 스키마 (`UserConfig`, `TimerStatus`) 설계 및 마이그레이션.
+    - 타이머 리셋 로직 (`TimerService`) 및 API (`/api/v1/timer/reset`) 구현.
+    - 단위 및 통합 테스트 완료.
 
 ### 🚧 진행 예정 (Immediate)
 - [ ] **실제 이메일 서비스 연동**:

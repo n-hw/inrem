@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { LoginScreen } from '../LoginScreen';
 import { AuthProvider } from '../../context/AuthContext';
 
