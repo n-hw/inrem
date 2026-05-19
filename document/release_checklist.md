@@ -22,10 +22,10 @@
   - 회원가입·온보딩에 약관 동의 체크박스 + 동의 버전 저장 UI
 
 ### 데이터 영구 삭제 (잊혀질 권리 완결)
-- [ ] **30일 grace 만료 사용자 영구 삭제 cron sweep**
-  - 위치: `back/app/services/scheduler.py` 에 작업 추가
-  - 동작: 매일 자정 `deletion_requested_at < now - 30days` 인 user 와 cascade 데이터(activity_signals / assets / guardian / pulse_events / timer_status / user_config / monitoring_policy / device tokens) 모두 삭제
-  - 감사 로그: `inrem.audit.account` 에 `account_purged` 이벤트
+- [x] ~~**30일 grace 만료 사용자 영구 삭제 cron sweep**~~ ✅ 2026-05-19
+  - `account_service.purge_expired_deletions()` + `AccountPurgeScheduler` (24h)
+  - `inrem.audit.account` 에 `account_purged` 감사 로그
+  - **잔여**: SQLAlchemy cascade 미설정 테이블 점검(보호자 매핑 등) 필요
 
 ### 이메일 프로덕션 채널
 - [ ] **트랜잭션 이메일 서비스 전환** (현재 Gmail SMTP — dev/alpha 한정)
@@ -73,8 +73,8 @@
 
 ### 보안 보강
 - [ ] **JWT 토큰 회전 / refresh token** (현재 30일 단일 토큰)
-- [ ] **로그인 시도 rate-limit** (브루트포스 방지)
-- [ ] **CORS 정책 명시화** (현재 기본 설정)
+- [x] ~~**로그인 시도 rate-limit**~~ ✅ 2026-05-19 — `LOGIN_LIMITER` (5회/분, email+IP 키)
+- [x] ~~**CORS 정책 명시화**~~ ✅ 2026-05-19 — `CORSMiddleware`, `CORS_ALLOW_ORIGINS` env
 - [ ] **민감 정보(시크릿) 입력 폼 — 클립보드 자동 클리어** (프론트)
 
 ---
@@ -93,10 +93,8 @@
   - Detox 또는 Playwright + Expo Web
 
 ### 기능 폴리싱
-- [ ] **HomeScreen 폴링** (현재는 다음 화면 진입 시까지 타이머 정적)
-  - websocket / 1분 주기 폴링으로 last_active_at 실시간 갱신
-- [ ] **HomeScreen에 last_active_at 전용 엔드포인트**
-  - 현재 `signalApi.sendHeartbeat('app_open')` 부수 효과로 받음 → 별도 GET 으로 분리
+- [x] ~~**HomeScreen 폴링**~~ ✅ 2026-05-19 — 60초 주기 `signalApi.getStatus()`
+- [x] ~~**HomeScreen에 last_active_at 전용 엔드포인트**~~ ✅ 2026-05-19 — `GET /api/v1/signal/status` (부수효과 없음)
 - [ ] **에러 메시지 다양화**
   - 401 / 5xx / 네트워크 단절 별로 다른 UX
 

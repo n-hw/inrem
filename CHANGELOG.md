@@ -3,6 +3,40 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (심야) — 출시 차단 항목 4건 처리
+
+`document/release_checklist.md` 의 P1~P4 자율 처리 가능 항목 일괄 진행.
+
+### Added
+- **30일 grace 만료 영구 삭제 스케줄러** (PIPA 잊혀질 권리 완결)
+  - `account_service.purge_expired_deletions()` — `deletion_requested_at < now-30d` 인 사용자 hard-delete.
+  - `scheduler.AccountPurgeScheduler` — 24h 주기 + 시작 시 1회 즉시 sweep.
+  - `inrem.audit.account` 에 `account_purged` 이벤트 (커밋 전 로그 → 재시도 안전).
+- **로그인 rate-limit (브루트포스 방지)**
+  - `LOGIN_LIMITER` (분당 5회, `email + client_ip` 키).
+  - `X-Forwarded-For` 우선 → 직접 IP 폴백.
+  - 초과 시 429 + Retry-After.
+- **CORS 명시화**
+  - `CORSMiddleware` 추가, `CORS_ALLOW_ORIGINS` 환경변수로 화이트리스트.
+  - 미설정 시 `localhost:8081/19006/3000` 개발 기본값.
+- **`GET /api/v1/signal/status` (부수효과 없는 조회)**
+  - `last_active_at` + `deletion_requested_at` 스냅샷.
+  - HomeScreen 60초 폴링용 → 다른 디바이스 활동을 새 heartbeat 없이 반영.
+- **HomeScreen 폴링** — `signalApi.getStatus()` 60초 간격, 활동 최신 값만 채택.
+
+### Tests
+- `tests/test_account.py` purge 2종 + login rate-limit 2종 (= 4 신규).
+- `tests/test_cors.py` 3종 (파서 + 프리플라이트).
+- `tests/test_signal_status.py` 3종 (status 응답·삭제대기 노출·부수효과 없음).
+- 백엔드 전체 **39/39 통과**, 프론트 `tsc --noEmit` exit 0.
+
+### Changed
+- `back/app/main.py` — `_cors_origins()` parser + CORSMiddleware.
+- `back/app/core/config.py` — `CORS_ALLOW_ORIGINS` 환경 설정.
+- `.env.example` — CORS / Gmail 안내 갱신.
+
+---
+
 ## [Unreleased] - 2026-05-19 (밤) — Gmail SMTP 이메일 프로바이더
 
 ### Added
