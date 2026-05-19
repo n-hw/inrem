@@ -2,6 +2,8 @@
 
 이 문서는 InRem 플랫폼의 남은 작업과 향후 기능 계획을 정리한 문서입니다.
 
+> **🚨 출시 전 잔여 작업은 [`document/release_checklist.md`](document/release_checklist.md) 참조** — 우선순위·담당·참조 코드 위치까지 정리되어 있습니다.
+
 ---
 
 ## 📌 Phase 4: UI/UX 및 안정성 (현재 집중 단계)
