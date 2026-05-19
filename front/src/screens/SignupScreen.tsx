@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { useAuth } from '../context/AuthContext';
+import { describeError } from '../api/client';
 import { haptic } from '../utils/haptics';
 
 interface SignupScreenProps {
@@ -15,23 +16,26 @@ export const SignupScreen = ({ onNavigateToLogin }: SignupScreenProps) => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    // Inline error 배너 — Alert 가 RN Web 에서 invisible 한 문제를 회피.
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { register } = useAuth();
 
     const handleSignup = async () => {
+        setErrorMessage(null);
         if (!email || !password || !confirmPassword) {
-            Alert.alert('오류', '모든 필드를 입력해주세요.');
+            setErrorMessage('모든 필드를 입력해 주세요.');
             return;
         }
 
         if (password !== confirmPassword) {
             await haptic.warning();
-            Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+            setErrorMessage('비밀번호가 일치하지 않아요.');
             return;
         }
 
         if (password.length < 8) {
             await haptic.warning();
-            Alert.alert('오류', '비밀번호는 8자 이상이어야 합니다.');
+            setErrorMessage('비밀번호는 8자 이상이어야 해요.');
             return;
         }
 
@@ -41,9 +45,11 @@ export const SignupScreen = ({ onNavigateToLogin }: SignupScreenProps) => {
         try {
             await register(email, password);
             await haptic.success();
-        } catch (_error) {
+        } catch (error) {
             await haptic.error();
-            Alert.alert('회원가입 실패', '이미 등록된 이메일이거나 서버 오류가 발생했습니다.');
+            setErrorMessage(
+                describeError(error, '이미 등록된 이메일이거나 가입에 실패했어요.'),
+            );
         } finally {
             setIsLoading(false);
         }
@@ -93,6 +99,14 @@ export const SignupScreen = ({ onNavigateToLogin }: SignupScreenProps) => {
                         secureTextEntry
                         autoComplete="new-password"
                     />
+
+                    {errorMessage ? (
+                        <View style={styles.errorBanner} accessibilityRole="alert">
+                            <Text style={[typography.body2, { color: colors.danger }]}>
+                                {errorMessage}
+                            </Text>
+                        </View>
+                    ) : null}
 
                     <TouchableOpacity
                         style={[styles.button, isLoading && styles.buttonDisabled]}
@@ -168,6 +182,13 @@ const styles = StyleSheet.create({
         opacity: 0.6,
         shadowOpacity: 0,
         elevation: 0,
+    },
+    errorBanner: {
+        backgroundColor: `${colors.danger}10`,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginBottom: 12,
     },
     footer: {
         flexDirection: 'row',

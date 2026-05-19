@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
@@ -15,11 +15,16 @@ export const LoginScreen = ({ onNavigateToSignup }: LoginScreenProps) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    // Inline error 가 Web/Native 양쪽에서 안정적으로 노출되도록
+    // Alert.alert 대신 화면 내 배너를 사용한다 (Alert 는 RN Web 에서
+    // window.alert 폴백이 dismiss/blocking 차이로 안 보일 수 있음).
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { login } = useAuth();
 
     const handleLogin = async () => {
+        setErrorMessage(null);
         if (!email || !password) {
-            Alert.alert('오류', '이메일과 비밀번호를 입력해주세요.');
+            setErrorMessage('이메일과 비밀번호를 입력해 주세요.');
             return;
         }
 
@@ -31,8 +36,7 @@ export const LoginScreen = ({ onNavigateToSignup }: LoginScreenProps) => {
             await haptic.success();
         } catch (error) {
             await haptic.error();
-            Alert.alert(
-                '로그인 실패',
+            setErrorMessage(
                 describeError(error, '이메일 또는 비밀번호가 올바르지 않아요.'),
             );
         } finally {
@@ -73,6 +77,14 @@ export const LoginScreen = ({ onNavigateToSignup }: LoginScreenProps) => {
                         secureTextEntry
                         autoComplete="password"
                     />
+
+                    {errorMessage ? (
+                        <View style={styles.errorBanner} accessibilityRole="alert">
+                            <Text style={[typography.body2, { color: colors.danger }]}>
+                                {errorMessage}
+                            </Text>
+                        </View>
+                    ) : null}
 
                     <TouchableOpacity
                         style={[styles.button, isLoading && styles.buttonDisabled]}
@@ -148,6 +160,13 @@ const styles = StyleSheet.create({
         opacity: 0.6,
         shadowOpacity: 0,
         elevation: 0,
+    },
+    errorBanner: {
+        backgroundColor: `${colors.danger}10`,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginBottom: 12,
     },
     footer: {
         flexDirection: 'row',
