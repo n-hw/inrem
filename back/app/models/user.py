@@ -26,24 +26,80 @@ class User(Base):
     # Guardian Pulse: Last activity tracking
     last_active_at = Column(DateTime, nullable=True, default=datetime.utcnow)
     
-    # Relationships for Guardian Pulse
-    activity_signals = relationship("ActivitySignal", back_populates="user", lazy="dynamic")
-    monitoring_policy = relationship("MonitoringPolicy", back_populates="user", uselist=False)
-    pulse_events = relationship("PulseEvent", foreign_keys="PulseEvent.user_id", back_populates="user", lazy="dynamic")
-    
-    # Guardian relationships
+    # ──────────────────────────────────────────────────────────────────
+    # Cascade policy (PRD §6 — 잊혀질 권리)
+    # Owner-side relationships use `cascade="all, delete-orphan"` so that
+    # `db.delete(user)` issues child DELETEs through the ORM, regardless
+    # of whether the DB FK has ON DELETE CASCADE. This is what
+    # `account_service.purge_expired_deletions()` relies on.
+    #
+    # 잔여: `Asset.designated_executor_id` 와 `PulseEvent.resolved_by`
+    # 는 *다른* 사용자를 가리킬 수 있다. 해당 다른 사용자가 삭제될 때
+    # 이 컬럼들이 dangling 이 되므로, 출시 전 alembic 마이그레이션에서
+    # `ondelete="SET NULL"` 로 바꿔야 한다 (TODO).
+    # ──────────────────────────────────────────────────────────────────
+
+    activity_signals = relationship(
+        "ActivitySignal",
+        back_populates="user",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+        passive_deletes=False,
+    )
+    monitoring_policy = relationship(
+        "MonitoringPolicy",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    pulse_events = relationship(
+        "PulseEvent",
+        foreign_keys="PulseEvent.user_id",
+        back_populates="user",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
+
+    # Guardian 매핑: 본인이 ward 인 행과 guardian 인 행 모두 함께 삭제.
     guardians = relationship(
         "Guardian",
         foreign_keys="Guardian.ward_id",
         back_populates="ward",
         lazy="dynamic",
+        cascade="all, delete-orphan",
     )
     wards = relationship(
         "Guardian",
         foreign_keys="Guardian.guardian_id",
         lazy="dynamic",
+        cascade="all, delete-orphan",
     )
 
-    # Timer relationships (Task 22)
-    config = relationship("UserConfig", back_populates="user", uselist=False)
-    timer_status = relationship("TimerStatus", back_populates="user", uselist=False)
+    # Timer (Task 22)
+    config = relationship(
+        "UserConfig",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    timer_status = relationship(
+        "TimerStatus",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    # Heritage Box 자산 — 본인 소유. designated_executor_id 의 다른 사용자
+    # 참조는 위 잔여 항목 참조.
+    assets = relationship(
+        "Asset",
+        foreign_keys="Asset.user_id",
+        cascade="all, delete-orphan",
+    )
+
+    # Life Narrator 기록.
+    records = relationship(
+        "Record",
+        foreign_keys="Record.user_id",
+        cascade="all, delete-orphan",
+    )
