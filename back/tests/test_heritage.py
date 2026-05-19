@@ -224,3 +224,64 @@ async def test_api_create_asset(async_client, override_deps, mock_user):
     assert body["name"] == "Crypto"
     assert "encrypted_payload" not in body
     svc.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_secret_reveal_audit_logged(
+    async_client, override_deps, mock_user, caplog
+):
+    """Every successful reveal must leave a structured audit trail."""
+    import logging
+
+    asset_id = uuid4()
+    fake = type("S", (), {"id": asset_id, "secret": "plaintext"})()
+
+    caplog.set_level(logging.INFO, logger="inrem.audit.heritage")
+    with patch(
+        "app.services.asset_service.reveal_secret",
+        new=AsyncMock(return_value=fake),
+    ):
+        resp = await async_client.get(
+            f"/api/v1/heritage/assets/{asset_id}/secret",
+            headers={"Authorization": "Bearer test"},
+        )
+
+    assert resp.status_code == 200
+    assert any(
+        r.getMessage() == "secret_reveal" and r.user_id == str(mock_user.id)
+        for r in caplog.records
+    )
+
+
+@pytest.mark.asyncio
+async def test_secret_reveal_rate_limited(
+    async_client, override_deps, mock_user
+):
+    """11th call inside the window must be 429."""
+    asset_id = uuid4()
+    fake = type("S", (), {"id": asset_id, "secret": "x"})()
+
+    # Reset state — previous tests may have populated the limiter bucket.
+    from app.core.rate_limit import SECRET_REVEAL_LIMITER
+
+    with SECRET_REVEAL_LIMITER._lock:
+        SECRET_REVEAL_LIMITER._events.pop(f"user:{mock_user.id}", None)
+
+    with patch(
+        "app.services.asset_service.reveal_secret",
+        new=AsyncMock(return_value=fake),
+    ):
+        # 10 allowed
+        for _ in range(SECRET_REVEAL_LIMITER.limit):
+            resp = await async_client.get(
+                f"/api/v1/heritage/assets/{asset_id}/secret",
+                headers={"Authorization": "Bearer test"},
+            )
+            assert resp.status_code == 200
+        # 11th blocked
+        resp = await async_client.get(
+            f"/api/v1/heritage/assets/{asset_id}/secret",
+            headers={"Authorization": "Bearer test"},
+        )
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers

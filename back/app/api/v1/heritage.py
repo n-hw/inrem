@@ -1,6 +1,7 @@
 """Heritage Box API — digital legacy inventory."""
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.rate_limit import SECRET_REVEAL_LIMITER
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.asset import (
@@ -18,6 +20,8 @@ from app.schemas.asset import (
     AssetUpdate,
 )
 from app.services import asset_service
+
+audit_logger = logging.getLogger("inrem.audit.heritage")
 
 router = APIRouter(prefix="/heritage", tags=["heritage"])
 
@@ -85,11 +89,25 @@ async def reveal_secret(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Return the decrypted sensitive payload. Use sparingly — should be
-    rate-limited and audit-logged in production."""
-    return await asset_service.reveal_secret(
+    """Return the decrypted sensitive payload.
+
+    Hard guarantees:
+    * **Rate-limited** per user (`SECRET_REVEAL_LIMITER`, 10/min) → 429 on burst.
+    * **Audit-logged** to `inrem.audit.heritage` — every reveal leaves a trail.
+    """
+    SECRET_REVEAL_LIMITER.check(f"user:{current_user.id}")
+    response = await asset_service.reveal_secret(
         db, user_id=current_user.id, asset_id=asset_id
     )
+    audit_logger.info(
+        "secret_reveal",
+        extra={
+            "user_id": str(current_user.id),
+            "asset_id": str(asset_id),
+            "had_secret": response.secret is not None,
+        },
+    )
+    return response
 
 
 @router.patch("/assets/{asset_id}", response_model=AssetResponse)
