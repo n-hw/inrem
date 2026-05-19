@@ -107,7 +107,7 @@ Asset
 #### 5.1.2 API 엔드포인트
 | Method | Path | 설명 |
 | --- | --- | --- |
-| GET | `/api/v1/heritage/assets` | 본인 자산 목록 (페이지네이션) |
+| GET | `/api/v1/heritage/assets?search=&type=` | 본인 자산 목록 (페이지네이션, 이름 부분일치 검색·타입 필터 지원) |
 | POST | `/api/v1/heritage/assets` | 자산 생성 |
 | GET | `/api/v1/heritage/assets/{id}` | 자산 상세 |
 | PATCH | `/api/v1/heritage/assets/{id}` | 자산 수정 |
@@ -121,14 +121,21 @@ Asset
 - `identifier`는 평문(검색·확인용), `encrypted_payload`는 비밀번호/시드 전용.
 
 #### 5.1.4 UX 요구
-- 리스트는 **타입별 그룹핑** + 검색.
+- 리스트는 **타입별 그룹핑** + 검색 (이름 부분일치, 300ms debounce) + **타입 필터 칩 행**.
 - 항목 추가 폼은 **1스크린·5필드 이내** (Name, Type, Identifier, Action on death, Note).
 - 민감 필드 입력 시 "🔒 암호화 저장됨" 시각 신호.
 - 빈 상태(empty state) 시 "추천 자산 5가지" 가이드 제공 (Instagram·Netflix·Google Drive·KB증권·중요 문서).
+- **검색·필터 결과 0건 시**: "조건에 맞는 자산이 없어요" + "필터 초기화" 버튼.
 
 ### 5.2 [v1.0 강화] Guardian Pulse
 - 기존 구현 유지.
-- 추가: HomeScreen에 **"오늘 Heritage Box 1항목 정리하기"** 추천 카드.
+- 추가: HomeScreen에 **"오늘 Heritage Box 1항목 정리하기"** 추천 카드 (요약 API 바인딩, 0항목/N항목 분기).
+
+### 5.5 [v1.0 신규] Premium 페이월 노출 (전환 가설 검증)
+- HomeScreen 에 **"가족공유 — Premium"** 카드 노출.
+- 탭 시 클릭 이벤트를 `POST /api/v1/settings/upsell/click` 으로 로그 → 백엔드 logger `inrem.upsell` 에 구조화 기록 (DB 테이블 없이 시작).
+- 사용자에겐 "준비 중 · 알림 신청" Alert 제공. 결제 모듈은 v1.x 후속.
+- KPI: PRD §7.2 "유료 옵션 클릭률(가족공유) ≥ 8%" 검증용.
 
 ### 5.3 [v1.0 신규] Tab Navigation
 - 하단 탭 3개: `홈(Pulse)` · `유산함(Heritage)` · `설정(Settings)`.

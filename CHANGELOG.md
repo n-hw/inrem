@@ -3,6 +3,40 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (오후)
+
+### Added (신규)
+- **Heritage Box 검색·필터** (PRD §5.1.4)
+  - 백엔드: `GET /api/v1/heritage/assets?search=&type=` — 이름 부분일치(ILIKE) + 타입 필터
+  - 프론트: `HeritageBoxScreen` 상단 검색 TextInput (300ms debounce) + 타입 필터 칩 가로 스크롤
+  - 결과 0건 시 "필터 초기화" CTA
+- **HomeScreen 데일리 Heritage 추천 카드** (PRD §5.2)
+  - 진입 시 `heritageApi.getSummary()` 호출, 0항목/N항목 분기 메시지
+  - 탭 시 유산함 탭으로 이동 (`MainTabsScreen` → `HomeScreen` `onNavigate` prop)
+- **Premium 페이월 카드 — 가족공유** (PRD §2.1 goal 4 / §5.5 신규)
+  - HomeScreen 하단 카드, 탭 시 백엔드 클릭 로깅 + "곧 출시" Alert
+  - 백엔드: `POST /api/v1/settings/upsell/click` (logger `inrem.upsell` 구조화 기록, DB 미도입)
+  - 프론트: `upsellApi.logClick(feature, surface)`
+- **테스트**
+  - `back/tests/test_settings.py` — 페이월 클릭 로깅·스키마 검증 2종
+  - `back/tests/test_heritage.py` — 검색·타입 쿼리 전달 검증 1종 추가
+
+### Changed (변경)
+- `back/app/repositories/asset_repository.py` — `list_by_user` 에 `search: str | None` 인자 추가
+- `back/app/services/asset_service.py` — `list_assets` `search` pass-through
+- `back/app/api/v1/heritage.py` — `search` 쿼리 파라미터 (max_length=120)
+- `back/app/schemas/settings.py` — `UpsellClickRequest` / `UpsellClickResponse`
+- `front/src/api/client.ts` — `heritageApi.listAssets({ search })`, `upsellApi` 추가
+- `front/src/features/heritage/hooks/useAssets.ts` — `UseAssetsOptions { search, typeFilter }` 지원
+- `front/src/screens/MainTabsScreen.tsx` — `MainTabKey` export, `HomeScreen` 에 `onNavigate` 전달
+- `document/PRD.md` — §5.1.2 search 쿼리, §5.1.4 필터 UX, §5.5 페이월 절 추가
+
+### Verified (검증)
+- 백엔드: pytest **9/9 통과** (Heritage 7 + Settings 2)
+- 프론트엔드: `tsc --noEmit` exit 0
+
+---
+
 ## [Unreleased] - 2026-05-19
 
 ### Added (신규)

@@ -14,6 +14,12 @@
     - DB 스키마 (`UserConfig`, `TimerStatus`) 설계 및 마이그레이션.
     - 타이머 리셋 로직 (`TimerService`) 및 API (`/api/v1/timer/reset`) 구현.
     - 단위 및 통합 테스트 완료.
+- [x] **Heritage Box 검색·필터 (PRD §5.1.4)**:
+    - 백엔드 `search` + `type` 쿼리, 프론트 검색 TextInput + 필터 칩.
+- [x] **HomeScreen 데일리 Heritage 추천 카드 (PRD §5.2)**:
+    - summary 바인딩, 탭 시 유산함 이동.
+- [x] **Premium 페이월 — 가족공유 노출 (PRD §2.1 goal 4)**:
+    - 클릭 로깅 엔드포인트(`/settings/upsell/click`), HomeScreen 카드 + Alert.
 
 ### 🚧 진행 예정 (Immediate)
 - [ ] **실제 이메일 서비스 연동**:
