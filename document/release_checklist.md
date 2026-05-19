@@ -72,10 +72,12 @@
   - PRD §6 NFR: "API p95 < 500ms" 측정 수단 필요
 
 ### 보안 보강
-- [ ] **JWT 토큰 회전 / refresh token** (현재 30일 단일 토큰)
+- [x] ~~**JWT 토큰 회전 / refresh token**~~ ✅ 2026-05-19 — access 30분 + refresh 30일, `/auth/refresh` 회전, axios 401 자동 재시도
 - [x] ~~**로그인 시도 rate-limit**~~ ✅ 2026-05-19 — `LOGIN_LIMITER` (5회/분, email+IP 키)
 - [x] ~~**CORS 정책 명시화**~~ ✅ 2026-05-19 — `CORSMiddleware`, `CORS_ALLOW_ORIGINS` env
-- [ ] **민감 정보(시크릿) 입력 폼 — 클립보드 자동 클리어** (프론트)
+- [x] ~~**민감 정보(시크릿) 입력 폼 — 클립보드 자동 클리어**~~ ✅ 2026-05-19 — `expo-clipboard` 30초 자동 비움
+- [x] ~~**Guardian 초대 rate-limit + 감사 로그**~~ ✅ 2026-05-19 — `GUARDIAN_INVITE_LIMITER` (5/시간) + `inrem.audit.guardian`
+- [x] ~~**`(ward_id, guardian_id)` DB 유니크 제약**~~ ✅ 2026-05-19 — alembic `e3a9f1b2c4d5`
 
 ---
 
@@ -95,8 +97,12 @@
 ### 기능 폴리싱
 - [x] ~~**HomeScreen 폴링**~~ ✅ 2026-05-19 — 60초 주기 `signalApi.getStatus()`
 - [x] ~~**HomeScreen에 last_active_at 전용 엔드포인트**~~ ✅ 2026-05-19 — `GET /api/v1/signal/status` (부수효과 없음)
-- [ ] **에러 메시지 다양화**
-  - 401 / 5xx / 네트워크 단절 별로 다른 UX
+- [x] ~~**에러 메시지 다양화**~~ ✅ 2026-05-19 — `describeError()` 401/403/404/410/422/429/5xx/타임아웃/오프라인 분기
+
+### PRD v1.0 검증 잔여
+- [x] ~~**보호자(N:M) 권한 분리 모델 감사**~~ ✅ 2026-05-19 — Guardian 권한 매트릭스 점검. invite rate-limit·audit·unique 제약 적용
+- [x] ~~**SQLAlchemy cascade 점검**~~ ✅ 2026-05-19 — User → 모든 owner-side 종속 행 ORM cascade. 통합 테스트 통과
+- [ ] **`Asset.designated_executor_id` / `PulseEvent.resolved_by` dangling FK** — alembic 마이그레이션으로 `ON DELETE SET NULL` 추가 필요
 
 ### PRD v1.0 검증 잔여
 - [ ] **보호자(N:M) 권한 분리 모델 완성도 감사** (PRD §2.1 Goal 3)
@@ -107,18 +113,15 @@
 
 ## 📱 출시 직전 — 앱 스토어 자산
 
-- [ ] **앱 아이콘** (1024x1024, 라운드/스퀘어)
-- [ ] **스플래시 스크린**
-- [ ] **스크린샷** (iOS: 6.7" / 6.5" / 5.5"; Android: 폰 / 태블릿)
-- [ ] **앱 소개 문구**
-  - 한 줄 소개 (30자) · 짧은 소개 (80자) · 긴 소개 (4000자)
-- [ ] **개인정보 처리 요약** (Apple Privacy Nutrition Labels / Google Data Safety)
-- [ ] **연령 등급 심사** (4+/12+ 등)
+- [x] ~~**앱 아이콘** (1024x1024)~~ ✅ 2026-05-19 — "Quiet Watch" 컨셉, `front/assets/brand/icon.svg` 마스터
+- [x] ~~**스플래시 스크린**~~ ✅ 2026-05-19 — `splash.svg` + Expo `splash-icon.png`, BG #003366
+- [ ] **스크린샷** (iOS: 6.7" / 6.5" / 5.5"; Android: 폰 / 태블릿) — 빌드 후 실제 화면 캡처 필요
+- [x] ~~**앱 소개 문구**~~ ✅ 2026-05-19 — `document/operations/app_store_metadata.md` (한/영, subtitle/short/long)
+- [x] ~~**개인정보 처리 요약** (Apple Privacy / Google Data Safety)~~ ✅ 2026-05-19 — 같은 문서 §4·§5
+- [x] ~~**앱 심사 가이드 대응 문구**~~ ✅ 2026-05-19 — 같은 문서 §6 (1.4.1 Safety / 5.1 Privacy / Permissions)
 - [ ] **TestFlight / Play Internal Testing** 배포 → 사내 베타 10명 검증
-- [ ] **앱 심사 가이드 대응**
-  - Apple: "안부 체크"가 의료/응급 기능으로 분류되지 않도록 문구 조정
-  - Google: 위치·연락처 권한 사용 사유 명시
-- [ ] **고객 지원 채널** (이메일·FAQ 페이지)
+- [ ] **연령 등급 심사** (4+/Everyone, 메타데이터 제출 시 확정)
+- [ ] **고객 지원 채널** (이메일·FAQ 페이지) — 도메인·이메일 발급 후
 
 ---
 

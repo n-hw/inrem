@@ -3,6 +3,54 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (새벽) — 디자인 자산 + 출시 직전 7건
+
+### Added
+- **브랜드 디자인 자산** — "Quiet Watch" (조용한 시선) 컨셉
+  - `front/assets/brand/icon.svg` · `adaptive-foreground.svg` · `splash.svg`
+  - `scripts/build_brand_assets.py` — cairosvg 일괄 렌더링
+  - 생성된 PNG: `icon.png` `adaptive-icon.png` `splash.png` `splash-icon.png` `favicon.png` `logo.png` `logo_with_background.png`
+  - `app.json` 갱신: icon/splash/adaptiveIcon, 배경 `#003366`
+- **앱 스토어 메타데이터** (`document/operations/app_store_metadata.md`)
+  - 한/영 카피 (subtitle/short/long), 키워드, Apple Privacy Labels / Google Data Safety, 심사 우려 사항·대응
+- **JWT refresh token 메커니즘**
+  - access 30분 + refresh 30일 분리. `_create_token`/`_decode_with_type` 으로 토큰 타입 격리 (cross-type 거부)
+  - `POST /api/v1/auth/refresh` — 회전 + 사용자 상태 재검증 (deletion-pending/inactive 거부)
+  - 프론트 axios interceptor 401 자동 재시도 (single in-flight refresh promise, refresh URL 무한루프 방지)
+- **시크릿 클립보드 자동 클리어** — `expo-clipboard` 사용, 30초 후 OS 클립보드 현재값이 입력 secret 과 일치할 때만 비움. 안내 배너 표시
+- **에러 메시지 다양화** — `describeError()` 헬퍼 (`api/client.ts`). 401/403/404/410/422/429+Retry-After/5xx/타임아웃/오프라인 분기. useAssets·SettingsScreen·LoginScreen 적용
+- **Guardian 보안 강화** (감사 결과)
+  - 초대 rate-limit `GUARDIAN_INVITE_LIMITER` (5/시간/사용자) — invitation 코드 dict DoS 방지
+  - `inrem.audit.guardian` 감사 로그 — invitation_created / accepted / removed
+  - `UniqueConstraint(ward_id, guardian_id)` + alembic `e3a9f1b2c4d5`
+- **User cascade 무결성** — `User` ORM cascade `all, delete-orphan` 추가 (activity_signals/assets/monitoring_policy/pulse_events/timer_status/user_config/guardians/wards/records). PIPA purge 가 IntegrityError 없이 동작
+
+### Tests
+- `tests/test_auth_refresh.py` 5종 — 타입 격리·회전·계정 상태 검증
+- `tests/test_account_cascade.py` 2종 — 통합 cascade 검증 (in-memory SQLite, Record JSONB swap)
+- `tests/test_guardian_security.py` 5종 — invite rate-limit·audit 3종·unique 제약 통합
+- 백엔드 전체 **52/52 통과**, 프론트 `tsc --noEmit` exit 0
+- `describeError` 7/7 — Jest 인프라 잔여로 별도 node 런타임 검증
+
+### Changed
+- `back/app/core/security.py` — TokenType literal + create_refresh_token/decode_refresh_token.
+- `back/app/services/auth_service.py` — register/authenticate 가 `(user, access, refresh)` 튜플 반환.
+- `back/app/core/config.py` — `REFRESH_TOKEN_EXPIRE_DAYS` 추가.
+- `back/app/models/user.py` — 모든 owner-side relationship 에 `cascade="all, delete-orphan"`.
+- `back/app/models/guardian.py` — `UniqueConstraint(ward_id, guardian_id)`.
+- `front/src/api/client.ts` — `tokenStorage`, `describeError`, axios refresh interceptor.
+- `front/src/context/AuthContext.tsx` — refresh token 함께 저장.
+- `front/src/screens/AssetFormScreen.tsx` — 클립보드 자동 wipe + 안내 배너.
+- `front/src/screens/{Login,Settings}Screen.tsx`, `features/heritage/hooks/useAssets.ts` — `describeError` 적용.
+- `front/app.json` — 새 브랜드 자산 + 배경색 `#003366`.
+
+### Known Gaps (출시 전)
+- `Asset.designated_executor_id` / `PulseEvent.resolved_by` 의 dangling FK — `ON DELETE SET NULL` alembic 마이그레이션 필요.
+- 스토어 스크린샷 — 빌드 후 실 화면 캡처 필요 (디자이너 없이는 디바이스 mockup 만 가능).
+- 도메인 / 고객 지원 이메일 (`{{TBD@inrem.app}}`) 발급 후 약관·정책 placeholder 치환.
+
+---
+
 ## [Unreleased] - 2026-05-19 (심야) — 출시 차단 항목 4건 처리
 
 `document/release_checklist.md` 의 P1~P4 자율 처리 가능 항목 일괄 진행.
