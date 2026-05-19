@@ -16,9 +16,19 @@ class UserLogin(BaseModel):
 
 
 class Token(BaseModel):
-    """Schema for token response."""
+    """Schema for token response.
+
+    `access_token` 은 짧은 lifetime (분 단위), `refresh_token` 은 긴
+    lifetime (일 단위). 클라이언트는 access 가 만료되면 refresh 로
+    `POST /auth/refresh` 를 호출해 새 쌍을 받는다.
+    """
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 class TokenData(BaseModel):

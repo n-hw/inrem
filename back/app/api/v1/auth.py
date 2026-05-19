@@ -6,9 +6,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.rate_limit import LOGIN_LIMITER
+from app.core.security import create_access_token, create_refresh_token, decode_refresh_token
 from app.db.session import get_db
+from app.repositories import user_repository
 from app.schemas.auth import (
     DeletionStatusResponse,
+    RefreshRequest,
     Token,
     UserCreate,
     UserResponse,
@@ -16,6 +19,7 @@ from app.schemas.auth import (
 from app.services import account_service, auth_service, AuthServiceError
 from app.api.deps import get_current_user
 from app.models.user import User
+from uuid import UUID
 
 audit_logger = logging.getLogger("inrem.audit.account")
 
@@ -47,8 +51,10 @@ async def register(
         Access token for the newly registered user.
     """
     try:
-        _, access_token = await auth_service.register_user(db, user_create)
-        return Token(access_token=access_token)
+        _, access_token, refresh_token = await auth_service.register_user(
+            db, user_create
+        )
+        return Token(access_token=access_token, refresh_token=refresh_token)
     except AuthServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -84,8 +90,48 @@ async def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    _, access_token = result
-    return Token(access_token=access_token)
+    _, access_token, refresh_token = result
+    return Token(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token_endpoint(
+    payload: RefreshRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Trade a valid refresh token for a brand-new (access, refresh) pair.
+
+    Refresh **rotation**: the old refresh is rejected on subsequent calls
+    only if the token expires — we don't keep a revocation list yet.
+    Stateless rotation is sufficient until session theft becomes a real
+    concern; at that point add a `refresh_tokens` table keyed by jti.
+
+    Account state is re-checked: deactivated or deletion-pending users
+    cannot mint new tokens via this endpoint.
+    """
+    subject = decode_refresh_token(payload.refresh_token)
+    if subject is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+    try:
+        user_id = UUID(subject)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+    user = await user_repository.get_user_by_id(db, user_id)
+    if user is None or not user.is_active or user.deletion_requested_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account no longer eligible",
+        )
+    return Token(
+        access_token=create_access_token(subject=str(user.id)),
+        refresh_token=create_refresh_token(subject=str(user.id)),
+    )
 
 
 @router.get("/me", response_model=UserResponse)

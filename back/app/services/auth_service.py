@@ -1,9 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    verify_password,
+)
 from app.models.user import User
-from app.schemas.auth import UserCreate
 from app.repositories import user_repository
-from app.core.security import verify_password, create_access_token
+from app.schemas.auth import UserCreate
 
 
 class AuthServiceError(Exception):
@@ -11,38 +15,34 @@ class AuthServiceError(Exception):
     pass
 
 
-async def register_user(db: AsyncSession, user_create: UserCreate) -> tuple[User, str]:
+def _issue_tokens(user_id: str) -> tuple[str, str]:
+    """Mint a fresh (access, refresh) pair for `user_id`."""
+    return create_access_token(subject=user_id), create_refresh_token(subject=user_id)
+
+
+async def register_user(
+    db: AsyncSession, user_create: UserCreate
+) -> tuple[User, str, str]:
     """Register a new user.
-    
-    Args:
-        db: Database session.
-        user_create: User creation data.
-    
-    Returns:
-        Tuple of (created user, access token).
-    
-    Raises:
-        AuthServiceError: If email already registered.
+
+    Returns `(user, access_token, refresh_token)`.
+    Raises `AuthServiceError` if the email is already registered.
     """
     existing_user = await user_repository.get_user_by_email(db, user_create.email)
     if existing_user:
         raise AuthServiceError("Email already registered")
-    
+
     user = await user_repository.create_user(db, user_create)
-    access_token = create_access_token(subject=str(user.id))
-    return user, access_token
+    access, refresh = _issue_tokens(str(user.id))
+    return user, access, refresh
 
 
-async def authenticate_user(db: AsyncSession, email: str, password: str) -> tuple[User, str] | None:
-    """Authenticate a user with email and password.
-    
-    Args:
-        db: Database session.
-        email: User's email.
-        password: Plain text password.
-    
-    Returns:
-        Tuple of (user, access token) if authenticated, None otherwise.
+async def authenticate_user(
+    db: AsyncSession, email: str, password: str
+) -> tuple[User, str, str] | None:
+    """Authenticate by (email, password). Returns `(user, access, refresh)` or None.
+
+    Returns None for any auth-failure shape (no enumeration leak).
     """
     user = await user_repository.get_user_by_email(db, email)
     if not user:
@@ -56,5 +56,5 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> tupl
     if user.deletion_requested_at is not None:
         return None
 
-    access_token = create_access_token(subject=str(user.id))
-    return user, access_token
+    access, refresh = _issue_tokens(str(user.id))
+    return user, access, refresh

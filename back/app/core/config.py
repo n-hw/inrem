@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     # Environment
     ENV: str = "development"
     SECRET_KEY: str = "secret"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 짧게 — refresh 로 회전
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 긴 lifetime, 매 사용 시 회전
     
     # Encryption
     ENCRYPTION_KEY: str | None = None  # Fernet key for field-level encryption

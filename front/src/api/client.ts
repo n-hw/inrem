@@ -1,7 +1,23 @@
-import axios from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
+
+const ACCESS_KEY = 'access_token';
+const REFRESH_KEY = 'refresh_token';
+
+export const tokenStorage = {
+    getAccess: () => SecureStore.getItemAsync(ACCESS_KEY),
+    getRefresh: () => SecureStore.getItemAsync(REFRESH_KEY),
+    setBoth: async (access: string, refresh: string) => {
+        await SecureStore.setItemAsync(ACCESS_KEY, access);
+        await SecureStore.setItemAsync(REFRESH_KEY, refresh);
+    },
+    clear: async () => {
+        await SecureStore.deleteItemAsync(ACCESS_KEY);
+        await SecureStore.deleteItemAsync(REFRESH_KEY);
+    },
+};
 
 export const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -11,30 +27,110 @@ export const apiClient = axios.create({
     },
 });
 
-// Request interceptor to add auth token
 apiClient.interceptors.request.use(
     async (config) => {
-        const token = await SecureStore.getItemAsync('access_token');
+        const token = await tokenStorage.getAccess();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error),
 );
 
-// Response interceptor for error handling
+// --- 401 → automatic refresh + retry ---
+// Single in-flight refresh promise so concurrent 401s don't fan out into
+// N refresh calls. Anyone who hits a 401 while one is pending awaits it.
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function performRefresh(): Promise<string | null> {
+    const refresh = await tokenStorage.getRefresh();
+    if (!refresh) return null;
+    try {
+        const resp = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+            refresh_token: refresh,
+        });
+        const { access_token, refresh_token } = resp.data;
+        await tokenStorage.setBoth(access_token, refresh_token);
+        return access_token;
+    } catch {
+        await tokenStorage.clear();
+        return null;
+    }
+}
+
+/**
+ * Map any API error into a user-facing Korean message.
+ *
+ * Use this everywhere we'd otherwise print a generic "오류" — the UX
+ * difference between "비밀번호가 틀렸어요" vs "잠시 후 다시 시도해
+ * 주세요" matters more than the actual status code.
+ *
+ * Falls back to `fallback` (caller's screen-specific copy) for unknown
+ * shapes — never surfaces the raw axios message or English text.
+ */
+export function describeError(error: unknown, fallback = '문제가 발생했어요.'): string {
+    if (!axios.isAxiosError(error)) return fallback;
+    if (error.code === 'ECONNABORTED') return '요청 시간이 초과됐어요. 네트워크 상태를 확인해 주세요.';
+    if (!error.response) return '인터넷에 연결되지 않은 것 같아요. 잠시 후 다시 시도해 주세요.';
+
+    const status = error.response.status;
+    const detail = (error.response.data as { detail?: string } | undefined)?.detail;
+
+    switch (status) {
+        case 400:
+            return detail || '요청 내용을 확인해 주세요.';
+        case 401:
+            return '로그인이 필요해요. 다시 로그인해 주세요.';
+        case 403:
+            return '접근 권한이 없어요.';
+        case 404:
+            return '대상을 찾을 수 없어요.';
+        case 410:
+            return detail || '유효 기간이 만료됐어요.';
+        case 422:
+            return detail || '입력 형식을 확인해 주세요.';
+        case 429: {
+            const retry = error.response.headers?.['retry-after'];
+            return retry
+                ? `요청이 너무 잦아요. ${retry}초 후 다시 시도해 주세요.`
+                : '요청이 너무 잦아요. 잠시 후 다시 시도해 주세요.';
+        }
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+            return '서버가 응답하지 않아요. 잠시 후 다시 시도해 주세요.';
+        default:
+            return fallback;
+    }
+}
+
 apiClient.interceptors.response.use(
     (response) => response,
-    async (error) => {
-        if (error.response?.status === 401) {
-            // Token expired or invalid - clear storage
-            await SecureStore.deleteItemAsync('access_token');
+    async (error: AxiosError) => {
+        const original = error.config as
+            | (InternalAxiosRequestConfig & { _retried?: boolean })
+            | undefined;
+        const status = error.response?.status;
+
+        // Don't try to refresh the refresh call itself (would loop).
+        const isRefreshCall = original?.url?.endsWith('/auth/refresh');
+
+        if (status === 401 && original && !original._retried && !isRefreshCall) {
+            original._retried = true;
+            refreshInFlight ??= performRefresh().finally(() => {
+                refreshInFlight = null;
+            });
+            const newAccess = await refreshInFlight;
+            if (newAccess) {
+                original.headers.Authorization = `Bearer ${newAccess}`;
+                return apiClient.request(original);
+            }
+            // Refresh failed — propagate so AuthContext can sign the user out.
         }
         return Promise.reject(error);
-    }
+    },
 );
 
 export const authApi = {
