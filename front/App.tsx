@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Text, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -88,9 +89,11 @@ export default function App() {
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </SafeAreaProvider>
       </GestureHandlerRootView>
       <StatusBar style="auto" />
     </View>

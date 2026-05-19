@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
@@ -6,16 +7,50 @@ const API_BASE_URL = 'http://localhost:8000/api/v1';
 const ACCESS_KEY = 'access_token';
 const REFRESH_KEY = 'refresh_token';
 
+/**
+ * Platform-aware secure-ish key/value storage.
+ *
+ * - **iOS / Android**: `expo-secure-store` (Keychain / Keystore).
+ * - **Web**: `localStorage`. Note this is NOT actually secure — it is
+ *   readable by any same-origin script — but the alternative is a runtime
+ *   crash (`deleteValueWithKeyAsync is not a function`). Web is dev / preview
+ *   only; production targets are native, where SecureStore applies.
+ */
+const isWeb = Platform.OS === 'web';
+
+async function getItem(key: string): Promise<string | null> {
+    if (isWeb) {
+        return typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
+    }
+    return SecureStore.getItemAsync(key);
+}
+
+async function setItem(key: string, value: string): Promise<void> {
+    if (isWeb) {
+        if (typeof window !== 'undefined') window.localStorage.setItem(key, value);
+        return;
+    }
+    await SecureStore.setItemAsync(key, value);
+}
+
+async function deleteItem(key: string): Promise<void> {
+    if (isWeb) {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(key);
+        return;
+    }
+    await SecureStore.deleteItemAsync(key);
+}
+
 export const tokenStorage = {
-    getAccess: () => SecureStore.getItemAsync(ACCESS_KEY),
-    getRefresh: () => SecureStore.getItemAsync(REFRESH_KEY),
+    getAccess: () => getItem(ACCESS_KEY),
+    getRefresh: () => getItem(REFRESH_KEY),
     setBoth: async (access: string, refresh: string) => {
-        await SecureStore.setItemAsync(ACCESS_KEY, access);
-        await SecureStore.setItemAsync(REFRESH_KEY, refresh);
+        await setItem(ACCESS_KEY, access);
+        await setItem(REFRESH_KEY, refresh);
     },
     clear: async () => {
-        await SecureStore.deleteItemAsync(ACCESS_KEY);
-        await SecureStore.deleteItemAsync(REFRESH_KEY);
+        await deleteItem(ACCESS_KEY);
+        await deleteItem(REFRESH_KEY);
     },
 };
 
