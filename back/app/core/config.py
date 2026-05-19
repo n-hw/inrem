@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     SENTRY_DSN: str | None = None  # Optional: errors → Sentry when set
 
+    # Email (Gmail SMTP — dev/alpha). 비워두면 MockEmailProvider 로 폴백.
+    # 사용자 셋업: Google 계정 → 보안 → 2FA → "앱 비밀번호" 생성 후 입력.
+    GMAIL_USERNAME: str | None = None
+    GMAIL_APP_PASSWORD: str | None = None
+    GMAIL_FROM_NAME: str | None = None  # 발신자 표시 이름, 기본 "InRem"
+
     # Database
     POSTGRES_SERVER: str
     POSTGRES_USER: str

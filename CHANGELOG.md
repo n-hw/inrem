@@ -3,6 +3,34 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (밤) — Gmail SMTP 이메일 프로바이더
+
+### Added
+- **`GmailSMTPProvider`** (`back/app/services/email_service.py`)
+  - `aiosmtplib` 기반 STARTTLS / 587 / App Password 인증.
+  - 발송 성공·실패 모두 구조화 로그 (`gmail_send_ok` / `gmail_send_failed`).
+  - 실패는 ERROR + exc_info=True 로 강제 노출 — 안전 알림 미도달은 치명적.
+- **자동 프로바이더 선택** (`_build_default_provider`):
+  - `GMAIL_USERNAME` + `GMAIL_APP_PASSWORD` 설정되면 Gmail 사용.
+  - 미설정이면 `MockEmailProvider` 폴백 (개발 안전).
+- **환경 변수** (`back/app/core/config.py`):
+  - `GMAIL_USERNAME`, `GMAIL_APP_PASSWORD`, `GMAIL_FROM_NAME` (기본 "InRem").
+- **셋업 가이드**: `document/operations/email_gmail_setup.md`
+  - 2단계 인증 활성화 → 앱 비밀번호 생성 → `.env` 입력 → 발송 테스트 절차.
+  - 발송 한도(500/일)·스팸 분류 회피·프로덕션 마이그레이션 체크리스트.
+- **`.env.example`** 갱신.
+- **의존성**: `aiosmtplib ^5.1.0`
+
+### Tests
+- `back/tests/test_email.py` — 5종 (프로바이더 선택 2 + 발송 성공/실패 2 + Mock 1)
+- 백엔드 전체 **29/29 통과**.
+
+### Known Gaps (출시 전)
+- Gmail 은 dev/alpha 한정. Public launch 전 Resend/SendGrid/SES 로 교체 필요 (가이드 문서 마지막 섹션 참조).
+- 발송 실패 시 자동 재시도 / bounce webhook 처리 없음 (Gmail SMTP 한계).
+
+---
+
 ## [Unreleased] - 2026-05-19 (저녁) — 출시 베이스라인 강화
 
 ### Added (신규)
