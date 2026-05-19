@@ -1,10 +1,11 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import LOGIN_LIMITER
 from app.db.session import get_db
 from app.schemas.auth import (
     DeletionStatusResponse,
@@ -57,21 +58,25 @@ async def register(
 
 @router.post("/login", response_model=Token)
 async def login(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Authenticate a user and return an access token.
-    
-    Uses OAuth2 password flow (form data: username, password).
-    Note: 'username' field is used for email.
-    
-    Args:
-        form_data: OAuth2 form with username (email) and password.
-        db: Database session.
-    
-    Returns:
-        Access token for authenticated user.
+
+    OAuth2 password flow (form data: username = email, password).
+
+    **Rate limited** to 5 attempts / minute per `(email, client IP)` —
+    brute-force defense. Successful and failed attempts both count;
+    legitimate fat-finger users see a 429 with `Retry-After: 60`.
     """
+    # IP from X-Forwarded-For when behind a proxy, else direct.
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+    LOGIN_LIMITER.check(f"login:{form_data.username.lower()}:{client_ip}")
+
     result = await auth_service.authenticate_user(db, form_data.username, form_data.password)
     if result is None:
         raise HTTPException(

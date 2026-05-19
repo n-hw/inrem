@@ -51,3 +51,11 @@ class SlidingWindowRateLimiter:
 # Concrete limiters used by the app. Tune here, not at call sites.
 SECRET_REVEAL_LIMITER = SlidingWindowRateLimiter(limit=10, window_seconds=60.0)
 """Per-user limiter for `/heritage/assets/{id}/secret` reveals (10 per minute)."""
+
+LOGIN_LIMITER = SlidingWindowRateLimiter(limit=5, window_seconds=60.0)
+"""Per (email + client IP) limiter for `/auth/login` (5 attempts per minute).
+
+Conservative: any attempt — success or fail — counts. Brute-force gets
+blocked quickly; a legitimate user fat-fingering their password 5 times
+also gets blocked, but the message tells them to wait 1 minute.
+"""
