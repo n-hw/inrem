@@ -17,11 +17,12 @@ def _cors_origins() -> list[str]:
     """Parse CORS_ALLOW_ORIGINS env. Empty → dev-safe localhost defaults."""
     raw = (settings.CORS_ALLOW_ORIGINS or "").strip()
     if not raw:
-        # Dev safety net — Expo / RN bundlers + local web preview.
+        # Dev safety net — Expo / RN bundlers + local web preview + QA static.
         return [
             "http://localhost:8081",
             "http://localhost:19006",
             "http://localhost:3000",
+            "http://localhost:8090",
         ]
     return [o.strip() for o in raw.split(",") if o.strip()]
 
