@@ -3,6 +3,40 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (이른아침) — Cross-user FK SET NULL + E2E QA
+
+### Fixed (실제 production bug 2건 — QA 도중 발견)
+- **`SafeAreaProvider` 누락 → React 트리 crash**: Web 빌드에서 페이지가 완전히 빈 화면. iOS/Android 에서도 `useSafeAreaInsets`/`SafeAreaView` 가 사용 중이라 잠재적 위험. `App.tsx` 최상위에 추가.
+- **`expo-secure-store` Web crash**: `n.default.deleteValueWithKeyAsync is not a function` → 회원가입 후 토큰 저장 실패 → 인증 진행 차단. `tokenStorage` 를 platform-aware 로 변경 (Web → `localStorage`, native → SecureStore).
+
+### Added
+- **`ON DELETE SET NULL` 마이그레이션** (`f4b1c2a3d8e7_cross_user_fk_set_null`):
+  - `assets.designated_executor_id` (FK 이름 `fk_assets_designated_executor_id_users`)
+  - `pulse_events.resolved_by` (FK 이름 `pulse_events_resolved_by_fkey`)
+  - 다른 사용자(executor / resolver) 가 PIPA purge 로 삭제돼도 자산/이벤트는 보존, 포인터만 NULL.
+- **QA 인프라**:
+  - `scripts/qa_smoke.sh` — 백엔드 8 시나리오 (28 assertions) curl 기반 E2E.
+  - `scripts/qa_web.py` — Playwright 헤드리스 Chromium 으로 Expo Web 정적 번들 driving (12 assertions, full signup → home → tabs flow + 콘솔/네트워크 클린 검증).
+- **`document/operations/qa_report_2026_05_19.md`**: QA 실행 결과, 발견 버그, 미커버 영역, 재현 절차.
+
+### Changed
+- `back/app/main.py` — CORS 기본 화이트리스트에 `http://localhost:8090` 추가 (QA 정적 서버).
+
+### Verified (QA)
+- 백엔드 API E2E **28/28** (qa_smoke.sh).
+- 프론트 Web E2E **12/12** (qa_web.py).
+- 단위/통합 pytest **52/52**.
+- `tsc --noEmit` exit 0.
+- 실 렌더링 스크린샷 6장 (`/tmp/inrem-qa-screenshots/01..06.png`).
+
+### Known Gaps (출시 전)
+- iOS / Android 실 디바이스 베타 — TestFlight / Play Internal 단계.
+- 푸시 알림 (FCM) 실 발송 — Firebase 자격증명 필요.
+- 이메일 fallback 실 발송 — 사용자가 Gmail 앱 비밀번호 발급 후.
+- Jest 잔여 — Expo winter runtime + Node 25 호환성 (LoginScreen 1 테스트 미실행).
+
+---
+
 ## [Unreleased] - 2026-05-19 (새벽) — 디자인 자산 + 출시 직전 7건
 
 ### Added

@@ -102,7 +102,7 @@
 ### PRD v1.0 검증 잔여
 - [x] ~~**보호자(N:M) 권한 분리 모델 감사**~~ ✅ 2026-05-19 — Guardian 권한 매트릭스 점검. invite rate-limit·audit·unique 제약 적용
 - [x] ~~**SQLAlchemy cascade 점검**~~ ✅ 2026-05-19 — User → 모든 owner-side 종속 행 ORM cascade. 통합 테스트 통과
-- [ ] **`Asset.designated_executor_id` / `PulseEvent.resolved_by` dangling FK** — alembic 마이그레이션으로 `ON DELETE SET NULL` 추가 필요
+- [x] ~~**`Asset.designated_executor_id` / `PulseEvent.resolved_by` ON DELETE SET NULL**~~ ✅ 2026-05-19 — alembic `f4b1c2a3d8e7`. cross-user 참조 사용자가 삭제돼도 자산/이벤트는 보존, 포인터만 NULL
 
 ### PRD v1.0 검증 잔여
 - [ ] **보호자(N:M) 권한 분리 모델 완성도 감사** (PRD §2.1 Goal 3)
