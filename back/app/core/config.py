@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     SENTRY_DSN: str | None = None  # Optional: errors → Sentry when set
 
+    # CORS — comma-separated list of allowed origins.
+    # Empty / unset 이면 RN dev 환경(localhost·LAN IP) 만 허용 (개발 안전).
+    # 프로덕션 출시 시 "https://app.inrem.io" 같은 실제 도메인으로 좁힐 것.
+    CORS_ALLOW_ORIGINS: str = ""
+
     # Email (Gmail SMTP — dev/alpha). 비워두면 MockEmailProvider 로 폴백.
     # 사용자 셋업: Google 계정 → 보안 → 2FA → "앱 비밀번호" 생성 후 입력.
     GMAIL_USERNAME: str | None = None
