@@ -3,6 +3,53 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (저녁) — 출시 베이스라인 강화
+
+### Added (신규)
+- **계정 삭제 / 잊혀질 권리 (PIPA, PRD §6 NFR)**
+  - 백엔드: `DELETE /api/v1/auth/me` (idempotent), `POST /api/v1/auth/me/restore` (grace 만료 시 410)
+  - `back/app/services/account_service.py` — `request_deletion`/`restore`/`grace_remaining` (30일 grace)
+  - `back/alembic/versions/d2e8f4b6c1a3_…` — `users.deletion_requested_at` 마이그레이션
+  - `auth_service.authenticate_user` — pending-deletion 사용자 새 로그인 차단 (기존 세션은 grace 동안 restore 가능)
+  - 감사 로그: `inrem.audit.account` ("account_deletion_requested" / "_restored")
+  - 프론트: `SettingsScreen` 위험 영역 섹션 + `accountApi`
+- **시크릿 reveal 보안 강화 (PRD §5.1.3)**
+  - `back/app/core/rate_limit.py` — `SlidingWindowRateLimiter` (인메모리 토큰 버킷)
+  - `GET /api/v1/heritage/assets/{id}/secret` 분당 10회 제한 + 감사 로그 (`inrem.audit.heritage`)
+- **법적 베이스라인 문서**
+  - `document/legal/README.md`, `privacy_policy.md`, `terms_of_service.md` — 초안 (변호사 자문 전, `{{TBD}}` 플레이스홀더)
+- **구조화 (JSON) 로깅 베이스**
+  - `back/app/core/logging.py` — `JsonFormatter` + `configure_logging()` + `configure_sentry()` (옵션)
+  - `main.py` 모듈 import 시점에 초기화. `SENTRY_DSN` 환경변수로 Sentry on/off.
+
+### Fixed (버그)
+- **HomeScreen lastActiveAt 초기값**: 마운트 직후 잘못된 "풀바" 표시 → 서버 응답 도착 전까지 로딩 스피너로 대체.
+- **AssetFormScreen 시크릿 편집 UX**: "기존 정보 덮어씀" 모호한 placeholder 제거. 저장된 비밀이 있을 때 상태 배너 표시, "저장된 비밀 삭제" 버튼 추가 (clear_secret 백엔드 옵션 연결).
+- **useAssets 에러 회복**: HeritageBoxScreen 에러 배너에 "다시 시도" 버튼.
+
+### Changed (변경)
+- `back/app/models/user.py` — `deletion_requested_at` 컬럼 추가.
+- `back/app/api/v1/auth.py` — DELETE/me, POST/me/restore 라우트.
+- `back/app/core/config.py` — `LOG_LEVEL`, `SENTRY_DSN` 환경 설정.
+- `back/app/main.py` — JSON 로깅·Sentry 초기화 hook.
+- `front/src/api/client.ts` — `accountApi` 추가.
+- `front/src/screens/SettingsScreen.tsx` — 위험 영역(계정 삭제) + 로그아웃 섹션.
+- `front/package.json` — `react-native-worklets`, `babel-preset-expo` devDep, `react-test-renderer` 19.1.0 핀, test script에 `NODE_OPTIONS` 추가.
+- `front/jest.setup.js` — stale `@react-navigation/native` 모킹 제거.
+
+### Verified (검증)
+- 백엔드: pytest **24/24 통과** (Heritage 9 + Settings 2 + Account 8 + Timer 2 + Logging 3)
+- 프론트엔드: `tsc --noEmit` exit 0
+- Jest: 4개 인프라 이슈 해소 (worklets·babel-preset-expo·stale mock·tester 버전), **잔여 1건** (Expo winter runtime + Node 25 호환성) 별도 작업 필요 — LoginScreen 테스트는 임시로 실행 불가.
+
+### Known Gaps (출시 전 추가 작업 필요)
+- **30일 grace 종료 시 사용자 + 데이터 영구 삭제 cron job** — `back/app/services/scheduler.py` 에 sweep 작업 추가 필요.
+- **법무 자문 후 `{{TBD}}` 치환 및 약관 동의 흐름 UI**.
+- **Sentry 실제 DSN 설정 + sentry-sdk 의존성 추가** (현재는 코드만 ready).
+- **결제 모듈**: 사업자 등록 후 진행.
+
+---
+
 ## [Unreleased] - 2026-05-19 (오후)
 
 ### Added (신규)
