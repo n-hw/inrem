@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { ScreenLayout } from './src/components/ScreenLayout';
+import { ResponsiveShell } from './src/components/ResponsiveShell';
 import { colors } from './src/theme/colors';
 import { typography } from './src/theme/typography';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -90,9 +91,17 @@ export default function App() {
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
+          {/*
+            ResponsiveShell:
+            - phone-size viewport → 풀스크린 그대로
+            - tablet/desktop viewport → 모바일 폭(480) 컨테이너 중앙 정렬,
+              외곽은 colors.shell 배경. 어떤 환경에서도 같은 모바일 UX 보장.
+          */}
+          <ResponsiveShell>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ResponsiveShell>
         </SafeAreaProvider>
       </GestureHandlerRootView>
       <StatusBar style="auto" />
