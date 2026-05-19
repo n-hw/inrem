@@ -3,6 +3,41 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (점심) — 반응형 컨테이너
+
+"어떤 환경에서도 동일한 UI/UX" 를 위해 모바일-퍼스트 디자인을 모든
+viewport 에서 보존하는 ResponsiveShell 도입. 새로운 레이아웃을 그리지
+않고 모바일 UX 를 중앙 고정 폭으로 띄워서 일관성을 보장한다.
+
+### Added
+- `src/hooks/useResponsive.ts` — `useWindowDimensions` 기반.
+  `MAX_CONTENT_WIDTH = 480` 상수 + `{ width, height, isShellWider }` 반환.
+- `src/components/ResponsiveShell.tsx`
+  - 모바일 폭(≤480): 풀스크린, 추가 효과 없음.
+  - 태블릿·웹·데스크톱: 480 폭 컨테이너 중앙 정렬, 외곽 `colors.shell`
+    배경 + 그림자로 카드처럼 떠 있는 효과.
+  - native (iPad 가로 등) 와 web 모두 동일 동작.
+- `colors.shell = #E3E7EC` — 모바일 프레임 외곽 셸 배경.
+- `scripts/qa_responsive.py` — 5 viewport 매트릭스 자동 QA
+  (320 / 414 / 768 / 1280 / 1920). 각 viewport 별:
+  · 회원가입 → 홈 → 유산함 자동 시나리오
+  · `min(viewport, 480)` 으로 inner 컨테이너 폭 정확히 측정
+  · 스크린샷 3장씩 캡처 (로그인 · 홈 · 유산함)
+
+### Changed
+- `App.tsx` 최상위 `<GestureHandlerRootView>` 아래에 `<ResponsiveShell>`
+  추가. 자식 트리 (AuthProvider → AppContent) 가 그 안에서 렌더링.
+
+### Verified
+- **5/5 viewport QA 통과** — 모든 화면 폭에서 모바일 프레임 무결성·
+  width 측정 정확.
+- `tsc --noEmit` exit 0.
+- 회귀: 기존 109/109 (단위·백엔드·프론트 happy·visual) 영향 없음.
+- 스크린샷: `resp-{phone-small,phone,tablet,desktop,desktop-xl}-
+  {1-login,2-home,3-heritage}.png` 총 15장.
+
+---
+
 ## [Unreleased] - 2026-05-19 (오전) — 시각 QA 보완 + Alert→inline 에러 배너
 
 ### Fixed (Bug #3, visual QA 도중 발견)
