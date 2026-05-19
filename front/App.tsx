@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Text, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -16,8 +17,10 @@ SplashScreen.preventAutoHideAsync();
 
 type AuthScreen = 'login' | 'signup';
 
+import { MainTabsScreen } from './src/screens/MainTabsScreen';
+
 const AuthenticatedApp = () => {
-  const { user, logout } = useAuth();
+  useAuth(); // keep for future user-aware effects
 
   // Send heartbeat when app is active
   useAppStateHeartbeat();
@@ -25,24 +28,8 @@ const AuthenticatedApp = () => {
   // Handle push notifications (for Soft Check-in)
   usePushNotification();
 
-  return (
-    <ScreenLayout>
-      <View style={styles.container}>
-        <Text style={[typography.heading1, { color: colors.primary }]}>환영합니다!</Text>
-        <Text style={[typography.body1, { color: colors.text.secondary, marginTop: 16 }]}>
-          {user?.email}
-        </Text>
-        <View style={styles.logoutButton}>
-          <Text
-            style={[typography.body2, { color: colors.danger }]}
-            onPress={logout}
-          >
-            로그아웃
-          </Text>
-        </View>
-      </View>
-    </ScreenLayout>
-  );
+  // Bottom tabs: 홈(Pulse) · 유산함(Heritage) · 설정(Settings)
+  return <MainTabsScreen />;
 };
 
 const UnauthenticatedApp = () => {
@@ -100,9 +87,11 @@ export default function App() {
 
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </GestureHandlerRootView>
       <StatusBar style="auto" />
     </View>
   );

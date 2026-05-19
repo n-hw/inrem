@@ -144,3 +144,90 @@ export const settingsApi = {
         return response.data;
     },
 };
+
+// ──────────────────────────────────────────────────────────────────────────
+// Heritage Box (Stage 2 — Digital legacy inventory)
+// See: document/PRD.md §5.1
+// ──────────────────────────────────────────────────────────────────────────
+
+export type AssetType =
+    | 'social_account'
+    | 'subscription'
+    | 'cloud_storage'
+    | 'crypto'
+    | 'bank_account'
+    | 'document'
+    | 'custom';
+
+export type ActionOnDeath = 'delete' | 'memorialize' | 'transfer' | 'keep_private';
+
+export interface Asset {
+    id: string;
+    user_id: string;
+    name: string;
+    type: AssetType;
+    identifier: string | null;
+    action_on_death: ActionOnDeath;
+    designated_executor_id: string | null;
+    note: string | null;
+    has_secret: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AssetCreatePayload {
+    name: string;
+    type: AssetType;
+    identifier?: string | null;
+    action_on_death: ActionOnDeath;
+    designated_executor_id?: string | null;
+    note?: string | null;
+    secret?: string | null;
+}
+
+export interface AssetUpdatePayload {
+    name?: string;
+    type?: AssetType;
+    identifier?: string | null;
+    action_on_death?: ActionOnDeath;
+    designated_executor_id?: string | null;
+    note?: string | null;
+    secret?: string | null;
+    clear_secret?: boolean;
+}
+
+export interface AssetSummary {
+    total: number;
+    by_type: Record<string, number>;
+    by_action: Record<string, number>;
+}
+
+export const heritageApi = {
+    listAssets: async (params?: { type?: AssetType; limit?: number; offset?: number }): Promise<Asset[]> => {
+        const response = await apiClient.get('/heritage/assets', { params });
+        return response.data;
+    },
+    getSummary: async (): Promise<AssetSummary> => {
+        const response = await apiClient.get('/heritage/assets/summary');
+        return response.data;
+    },
+    getAsset: async (id: string): Promise<Asset> => {
+        const response = await apiClient.get(`/heritage/assets/${id}`);
+        return response.data;
+    },
+    createAsset: async (data: AssetCreatePayload): Promise<Asset> => {
+        const response = await apiClient.post('/heritage/assets', data);
+        return response.data;
+    },
+    updateAsset: async (id: string, data: AssetUpdatePayload): Promise<Asset> => {
+        const response = await apiClient.patch(`/heritage/assets/${id}`, data);
+        return response.data;
+    },
+    deleteAsset: async (id: string): Promise<void> => {
+        await apiClient.delete(`/heritage/assets/${id}`);
+    },
+    revealSecret: async (id: string): Promise<{ id: string; secret: string | null }> => {
+        const response = await apiClient.get(`/heritage/assets/${id}/secret`);
+        return response.data;
+    },
+};
