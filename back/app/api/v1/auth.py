@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -5,12 +6,29 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.schemas.auth import UserCreate, Token, UserResponse
-from app.services import auth_service, AuthServiceError
+from app.schemas.auth import (
+    DeletionStatusResponse,
+    Token,
+    UserCreate,
+    UserResponse,
+)
+from app.services import account_service, auth_service, AuthServiceError
 from app.api.deps import get_current_user
 from app.models.user import User
 
+audit_logger = logging.getLogger("inrem.audit.account")
+
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _deletion_status(user: User) -> DeletionStatusResponse:
+    requested = user.deletion_requested_at
+    remaining = account_service.grace_remaining(user)
+    return DeletionStatusResponse(
+        deletion_requested_at=requested.isoformat() if requested else None,
+        grace_period_days=account_service.GRACE_PERIOD_DAYS,
+        seconds_remaining=int(remaining.total_seconds()) if remaining else None,
+    )
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
@@ -70,11 +88,54 @@ async def get_me(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     """Get the currently authenticated user's information.
-    
+
     Args:
         current_user: The authenticated user (from JWT).
-    
+
     Returns:
         User information.
     """
     return current_user
+
+
+@router.delete("/me", response_model=DeletionStatusResponse)
+async def request_account_deletion(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Request account deletion (PIPA 잊혀질 권리 / PRD §6 NFR).
+
+    Marks the account as pending deletion and deactivates login. The
+    actual data purge runs after a **30-day grace period**, during
+    which the user may call `POST /auth/me/restore` to undo.
+
+    This endpoint is idempotent — calling it again on a pending
+    account is a no-op and returns the same status.
+    """
+    user = await account_service.request_deletion(db, user=current_user)
+    audit_logger.info(
+        "account_deletion_requested",
+        extra={
+            "user_id": str(user.id),
+            "requested_at": user.deletion_requested_at.isoformat(),
+        },
+    )
+    return _deletion_status(user)
+
+
+@router.post("/me/restore", response_model=DeletionStatusResponse)
+async def restore_account(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Cancel a pending deletion if still inside the grace period.
+
+    Returns 410 if the grace period has already elapsed (account
+    purge may have run; restore is no longer possible).
+    """
+    user = await account_service.restore(db, user=current_user)
+    audit_logger.info(
+        "account_deletion_restored",
+        extra={"user_id": str(user.id)},
+    )
+    return _deletion_status(user)

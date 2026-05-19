@@ -14,10 +14,15 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     is_deceased = Column(Boolean, default=False)
-    
+
+    # PIPA / 잊혀질 권리: 사용자가 계정 삭제를 요청한 시각.
+    # PRD §6 NFR: 사용자 삭제 요청 시 30일 grace → 영구 삭제.
+    # 이 컬럼이 NULL 이 아니면 계정은 "deletion pending" 상태.
+    deletion_requested_at = Column(DateTime, nullable=True, default=None)
+
     # Push notifications
     fcm_token = Column(String, nullable=True)  # Firebase Cloud Messaging token
-    
+
     # Guardian Pulse: Last activity tracking
     last_active_at = Column(DateTime, nullable=True, default=datetime.utcnow)
     

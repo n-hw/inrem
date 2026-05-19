@@ -34,3 +34,10 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DeletionStatusResponse(BaseModel):
+    """Status returned after account deletion / restore actions."""
+    deletion_requested_at: str | None
+    grace_period_days: int
+    seconds_remaining: int | None

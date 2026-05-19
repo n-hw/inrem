@@ -51,6 +51,10 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> tupl
         return None
     if not user.is_active:
         return None
-    
+    # PIPA: 삭제 요청 후 grace 기간 중에도 새 로그인은 차단한다.
+    # 기존 세션은 토큰이 살아있는 동안 /me/restore 로 복구 가능.
+    if user.deletion_requested_at is not None:
+        return None
+
     access_token = create_access_token(subject=str(user.id))
     return user, access_token
