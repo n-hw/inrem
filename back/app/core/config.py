@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     # Firebase
     FIREBASE_CREDENTIALS_PATH: str | None = None  # Path to service account JSON
 
+    # Observability
+    LOG_LEVEL: str = "INFO"
+    SENTRY_DSN: str | None = None  # Optional: errors → Sentry when set
+
     # Database
     POSTGRES_SERVER: str
     POSTGRES_USER: str
