@@ -1,6 +1,6 @@
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app.models.timer_status import TimerState
 
 class TimerStatusResponse(BaseModel):
@@ -9,13 +9,11 @@ class TimerStatusResponse(BaseModel):
     deadline_timestamp: datetime | None
     status: TimerState
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserConfigResponse(BaseModel):
     period: int
     grace_period: int
     is_active: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -77,3 +77,74 @@ InRem은 비침습적 활동 감지와 자동화된 안부 확인을 통해 1인
         - `UserConfig`: 사용자별 주기(Period) 및 유예 시간(Grace Period) 설정.
         - `TimerStatus`: 마지막 체크인 및 마감 기한(Deadline) 관리.
     - **API**: `POST /api/v1/timer/reset` (타이머 리셋 및 마감 기한 갱신).
+
+### 8. 디지털 유산함 (Heritage Box — Stage 2 MVP)
+사용자가 떠난 후의 디지털 자산 처리 의사를 미리 정리·암호화해 보관합니다.
+
+- **자산 인벤토리**:
+    - **API**: `GET/POST/PATCH/DELETE /api/v1/heritage/assets` + `/summary`
+    - **검색·필터**: `?search=`(이름 부분일치 ILIKE) + `?type=`(타입 필터).
+    - **민감 정보 암호화**: Fernet 자동 암복호화. 응답에 ciphertext 노출 없음.
+- **시크릿 reveal 보안**:
+    - **API**: `GET /api/v1/heritage/assets/{id}/secret`
+    - **분당 10회 rate-limit** + `inrem.audit.heritage` 구조화 감사 로그.
+- **빈 상태 추천 5종**: Instagram·Netflix·Google Drive·은행 계좌·중요 문서.
+- **클립보드 자동 클리어** (프론트): 시크릿 페이스트 감지 후 30초 후 OS 클립보드 비움.
+
+### 9. 잊혀질 권리 — PIPA 계정 삭제 흐름
+- **삭제 요청**: `DELETE /api/v1/auth/me` (idempotent) → `deletion_requested_at` 스탬프.
+- **복구**: `POST /api/v1/auth/me/restore` — grace 만료 시 410.
+- **30일 grace 종료 후 영구 삭제**: `AccountPurgeScheduler` (24h 주기 sweep) + User cascade 로 종속 행 자동 정리. cross-user FK (executor·resolver) 는 `ON DELETE SET NULL`.
+
+### 10. Premium 페이월 — 가족공유 (전환 가설 검증)
+- **API**: `POST /api/v1/settings/upsell/click` — 결제 모듈 전 단계 KPI 검증용 구조화 클릭 로깅.
+- **HomeScreen 노출** + inline Toast 안내. 분당 30회 rate-limit.
+
+### 11. 보안 베이스라인
+- **JWT 회전**: access 30분 + refresh 30일. `/auth/refresh` 에서 회전. 토큰 타입 cross-use 거부.
+- **Rate-limit 5종** (인메모리 sliding window):
+    - `/auth/login` — 5/분 per (email, IP).
+    - `/auth/register` — 5/시간 per IP.
+    - `/signal/heartbeat` — 60/분 per user.
+    - `/heritage/assets/{id}/secret` — 10/분 per user.
+    - `/guardian/invite` — 5/시간 per user.
+    - `/settings/upsell/click` — 30/분 per user.
+- **CORS** 환경변수 화이트리스트 (`CORS_ALLOW_ORIGINS`).
+- **production 가드**: `ENV=production` 인데 이메일 프로바이더 자격증명 없으면 startup fail-fast.
+
+### 12. 관측성 (Observability)
+- **구조화 JSON 로깅**: `inrem.audit.heritage / account / guardian` + `inrem.upsell` 카테고리.
+- **Sentry-ready**: `SENTRY_DSN` 설정 시 자동 활성, 미설정 시 no-op.
+
+### 13. 프론트엔드 — 반응형 + UX
+- **반응형 컨테이너 (`ResponsiveShell`)**: 모바일·태블릿·데스크톱·iPad 가로 등 어떤 viewport 에서도 동일한 모바일 UX. 큰 화면에서는 480폭 컨테이너가 중앙 정렬되고 외곽엔 셸 배경.
+- **하단 탭 네비**: 홈(Pulse) · 유산함(Heritage) · 설정(Settings).
+- **에러 UX**: `describeError()` 헬퍼로 401/403/404/410/422/429+Retry-After/5xx/타임아웃/오프라인 한국어 매핑.
+- **인증 화면 inline 에러 배너**: `Alert.alert` 가 RN Web 에서 invisible 한 문제 회피.
+- **비밀번호 보기 토글** (Login·Signup).
+- **자동 토큰 회전**: axios interceptor 가 401 응답 시 single-in-flight refresh 후 원요청 재시도.
+
+---
+
+## 📦 디자인 자산
+- 브랜드 아이덴티티: "Quiet Watch" — Deep Ocean Blue + Soft Sage + Warm Sand
+- 마스터 SVG: `front/assets/brand/{icon,adaptive-foreground,splash}.svg`
+- 일괄 PNG 렌더링: `python3 scripts/build_brand_assets.py`
+
+## 🧪 QA & 테스트
+- 백엔드 pytest: 56+ 통과 (단위 + 통합 + cascade + rate-limit + 감사 로그)
+- 프론트 tsc: exit 0
+- E2E QA 스크립트:
+    - `scripts/qa_smoke.sh` — 백엔드 28 시나리오 (curl)
+    - `scripts/qa_web.py` — Playwright happy path
+    - `scripts/qa_web_visual.py` — 시각 검증 17 시나리오
+    - `scripts/qa_responsive.py` — 5 viewport 매트릭스 (320 / 414 / 768 / 1280 / 1920)
+
+## 📄 주요 문서
+- [`document/PRD.md`](document/PRD.md) — 제품 요구사항 v1.0
+- [`document/release_checklist.md`](document/release_checklist.md) — 출시 전 잔여 작업
+- [`document/operations/qa_report_2026_05_19.md`](document/operations/qa_report_2026_05_19.md) — QA 결과
+- [`document/operations/app_store_metadata.md`](document/operations/app_store_metadata.md) — 스토어 카피·심사 대응
+- [`document/operations/email_gmail_setup.md`](document/operations/email_gmail_setup.md) — Gmail SMTP 셋업
+- [`document/legal/`](document/legal/) — 개인정보처리방침·이용약관 초안 (변호사 검토 전)
+- [`CHANGELOG.md`](CHANGELOG.md) — 상세 변경 이력

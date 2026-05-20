@@ -3,6 +3,56 @@
 InRem 프로젝트의 주요 변경 이력입니다.
 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 규칙을 따릅니다.
 
+## [Unreleased] - 2026-05-19 (오후 늦게) — Bug·보안·UX·정리 16건 일괄
+
+### Fixed (Bug 3건)
+- **HomeScreen 페이월 Alert invisible (RN Web)** — `Alert.alert` 대신
+  새 `Toast` 컴포넌트로 inline 안내. 체크인 성공/실패도 같은 토스트로.
+- **`useAssets` 검색 race condition** — `requestSeq` ref 로 stale 응답
+  무시. 빠른 타이핑 시 늦게 도착한 결과가 최신 결과를 덮어쓰지 않음.
+- **AssetFormScreen 클립보드 타이머 무한 갱신** — `secret` 변경마다
+  timer 가 reset 되어 영원히 안 비워지던 버그. 페이스트 감지 시 한 번만
+  timer 예약, snapshot 으로 동일 paste 재예약 방지. UI 안내도 동기화.
+
+### Added (보안 5건)
+- **`REGISTER_LIMITER`** 5/시간 per IP — 자동 가입 farm 차단.
+- **`HEARTBEAT_LIMITER`** 60/분 per user — 무한 reset 공격 차단.
+- **`UPSELL_CLICK_LIMITER`** 30/분 per user — KPI 메트릭 조작 차단.
+- **Guardian 양방향 cascade 검증** — ward 측·guardian 측 어느 쪽을
+  삭제해도 매핑 행이 사라지는지 통합 테스트로 확인.
+- **production 가드** — `ENV=production` + Gmail 미설정 시
+  `EmailConfigError` startup fail-fast. silent Mock 폴백 차단.
+
+### Added (UX 3건)
+- **비밀번호 보기 토글** — Login 입력 우측 inline 버튼, Signup 라벨 우측
+  버튼 (양쪽 비밀번호·확인 동시 토글).
+- **AssetFormScreen 분류 → 처리 방식 자동 추천** —
+  `DEFAULT_ACTION_FOR_TYPE` 매핑 (social→memorialize / subscription→
+  delete / cloud·crypto·bank·document→transfer / custom→keep_private).
+  사용자가 처리 방식을 직접 만진 적 없을 때만 동기화. 안내 문구 노출.
+- **체크인 성공 토스트** — SwipeToConfirm 후 "안부 확인 완료! 타이머가
+  연장됐어요" 토스트로 명시적 피드백.
+
+### Changed (코드 품질 / 문서 2건)
+- **Pydantic v1 → v2 `ConfigDict` 마이그레이션** — 6개 schema +
+  `config.py`. `class Config:` 패턴 모두 제거, deprecation warning 8건
+  → 0건 (sqlalchemy 1건만 잔존, 별개 마이그레이션).
+- **README 전면 갱신** — v1.0 진행 상황 반영 (Heritage·삭제 흐름·페이월·
+  JWT 회전·rate-limit 6종·CORS·prod 가드·반응형·관측성·QA 스크립트).
+
+### Verified
+- 백엔드 pytest **56/56** (이전 52 + 4 신규 — register rate-limit·
+  cascade 대칭·prod 가드 등).
+- `tsc --noEmit` exit 0.
+- 회귀: 기존 109/109 모두 통과 유지.
+
+### Known Gaps (이후)
+- 백엔드 docker 이미지 stale (Docker Hub 액세스 막혀 재빌드 안 됨).
+  로컬 native poetry 환경으로 QA 진행, 호스팅 환경에서 재빌드 필요.
+- Jest 인프라 잔여 — Expo winter runtime + Node 25 호환성.
+
+---
+
 ## [Unreleased] - 2026-05-19 (점심) — 반응형 컨테이너
 
 "어떤 환경에서도 동일한 UI/UX" 를 위해 모바일-퍼스트 디자인을 모든

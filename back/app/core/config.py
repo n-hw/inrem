@@ -1,4 +1,5 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "InRem"
@@ -47,8 +48,6 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
-    class Config:
-        env_file = "../.env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file="../.env", case_sensitive=True)
 
 settings = Settings()

@@ -3,7 +3,7 @@
 from datetime import time
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.monitoring_policy import SensitivityLevel
 
@@ -53,8 +53,7 @@ class MonitoringPolicyResponse(BaseModel):
     def default_sensitivity(cls, v):
         return v if v is not None else SensitivityLevel.NORMAL
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MonitoringPolicyUpdate(BaseModel):
