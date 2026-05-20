@@ -14,6 +14,7 @@ interface LoginScreenProps {
 export const LoginScreen = ({ onNavigateToSignup }: LoginScreenProps) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     // Inline error 가 Web/Native 양쪽에서 안정적으로 노출되도록
     // Alert.alert 대신 화면 내 배너를 사용한다 (Alert 는 RN Web 에서
@@ -68,15 +69,28 @@ export const LoginScreen = ({ onNavigateToSignup }: LoginScreenProps) => {
                     />
 
                     <Text style={[typography.caption, styles.label]}>비밀번호</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="비밀번호를 입력하세요"
-                        placeholderTextColor={colors.text.caption}
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                        autoComplete="password"
-                    />
+                    <View style={styles.passwordRow}>
+                        <TextInput
+                            style={[styles.input, styles.passwordInput]}
+                            placeholder="비밀번호를 입력하세요"
+                            placeholderTextColor={colors.text.caption}
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                            autoComplete="password"
+                        />
+                        <TouchableOpacity
+                            onPress={() => setShowPassword((v) => !v)}
+                            style={styles.passwordToggle}
+                            accessibilityRole="button"
+                            accessibilityLabel={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                            hitSlop={8}
+                        >
+                            <Text style={[typography.caption, { color: colors.primary }]}>
+                                {showPassword ? '숨기기' : '보기'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
 
                     {errorMessage ? (
                         <View style={styles.errorBanner} accessibilityRole="alert">
@@ -167,6 +181,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         marginBottom: 12,
+    },
+    passwordRow: {
+        position: 'relative',
+    },
+    passwordInput: {
+        paddingRight: 60, // 토글 버튼 자리
+    },
+    passwordToggle: {
+        position: 'absolute',
+        right: 12,
+        top: 0,
+        bottom: 24, // input marginBottom 만큼 빼기
+        justifyContent: 'center',
+        paddingHorizontal: 8,
     },
     footer: {
         flexDirection: 'row',

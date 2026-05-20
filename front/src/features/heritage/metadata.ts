@@ -59,3 +59,17 @@ export const EMPTY_STATE_SUGGESTIONS: Array<{
     { name: '주거래 은행 계좌', type: 'bank_account', action_on_death: 'transfer' },
     { name: '중요 문서 (보험증서 등)', type: 'document', action_on_death: 'transfer' },
 ];
+
+/**
+ * 분류별 권장 처리 방식 — 새 자산을 만들 때 합리적인 기본값.
+ * 사용자가 분류를 바꾸면 처리 방식을 부드럽게 동기화한다 (편집 모드 제외).
+ */
+export const DEFAULT_ACTION_FOR_TYPE: Record<AssetType, ActionOnDeath> = {
+    social_account: 'memorialize',
+    subscription: 'delete',
+    cloud_storage: 'transfer',
+    crypto: 'transfer',
+    bank_account: 'transfer',
+    document: 'transfer',
+    custom: 'keep_private',
+};

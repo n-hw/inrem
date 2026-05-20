@@ -15,6 +15,7 @@ export const SignupScreen = ({ onNavigateToLogin }: SignupScreenProps) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     // Inline error 배너 — Alert 가 RN Web 에서 invisible 한 문제를 회피.
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -78,14 +79,28 @@ export const SignupScreen = ({ onNavigateToLogin }: SignupScreenProps) => {
                         autoComplete="email"
                     />
 
-                    <Text style={[typography.caption, styles.label]}>비밀번호</Text>
+                    <View style={styles.passwordLabelRow}>
+                        <Text style={[typography.caption, styles.label, { marginBottom: 0 }]}>
+                            비밀번호
+                        </Text>
+                        <TouchableOpacity
+                            onPress={() => setShowPassword((v) => !v)}
+                            accessibilityRole="button"
+                            accessibilityLabel={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                            hitSlop={8}
+                        >
+                            <Text style={[typography.caption, { color: colors.primary }]}>
+                                {showPassword ? '숨기기' : '보기'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                     <TextInput
                         style={styles.input}
                         placeholder="8자 이상 입력하세요"
                         placeholderTextColor={colors.text.caption}
                         value={password}
                         onChangeText={setPassword}
-                        secureTextEntry
+                        secureTextEntry={!showPassword}
                         autoComplete="new-password"
                     />
 
@@ -96,7 +111,7 @@ export const SignupScreen = ({ onNavigateToLogin }: SignupScreenProps) => {
                         placeholderTextColor={colors.text.caption}
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
-                        secureTextEntry
+                        secureTextEntry={!showPassword}
                         autoComplete="new-password"
                     />
 
@@ -189,6 +204,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 12,
         marginBottom: 12,
+    },
+    passwordLabelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
     },
     footer: {
         flexDirection: 'row',
