@@ -2,7 +2,7 @@
  * Heritage assets view-model (MVVM hook).
  * See: document/coding_convention.md §4.1
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
     type Asset,
@@ -40,7 +40,12 @@ export function useAssets(options: UseAssetsOptions = {}): UseAssetsState {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
+    // 마지막으로 시작된 refresh 의 순번. 늦게 도착한 응답은 무시해
+    // 검색어를 빠르게 타이핑할 때의 race condition (stale write) 을 막는다.
+    const requestSeq = useRef(0);
+
     const refresh = useCallback(async () => {
+        const mySeq = ++requestSeq.current;
         setError(null);
         setIsLoading(true);
         try {
@@ -52,13 +57,16 @@ export function useAssets(options: UseAssetsOptions = {}): UseAssetsState {
                 }),
                 heritageApi.getSummary(),
             ]);
+            // 더 새로운 요청이 이미 시작됐다면 이 결과는 stale.
+            if (mySeq !== requestSeq.current) return;
             setAssets(list);
             setSummary(sum);
         } catch (e) {
+            if (mySeq !== requestSeq.current) return;
             console.error('[useAssets] refresh failed', e);
             setError(describeError(e, '자산을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));
         } finally {
-            setIsLoading(false);
+            if (mySeq === requestSeq.current) setIsLoading(false);
         }
     }, [search, typeFilter]);
 

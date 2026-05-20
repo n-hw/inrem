@@ -30,6 +30,7 @@ import {
     ACTION_ORDER,
     ASSET_TYPE_META,
     ASSET_TYPE_ORDER,
+    DEFAULT_ACTION_FOR_TYPE,
 } from '../features/heritage/metadata';
 
 interface Props {
@@ -53,6 +54,20 @@ export const AssetFormScreen = ({
     const [action, setAction] = useState<ActionOnDeath>(
         initial?.action_on_death ?? 'keep_private',
     );
+    // 사용자가 처리 방식을 명시적으로 만진 적이 있는지. 만진 적 없을 때만
+    // 분류 변경에 따라 자동 추천 동기화. (사용자 의도 존중)
+    const [actionTouched, setActionTouched] = useState<boolean>(Boolean(editingId));
+
+    const handleTypeChange = (next: AssetType) => {
+        setType(next);
+        if (!actionTouched) {
+            setAction(DEFAULT_ACTION_FOR_TYPE[next]);
+        }
+    };
+    const handleActionChange = (next: ActionOnDeath) => {
+        setAction(next);
+        setActionTouched(true);
+    };
     const [note, setNote] = useState<string>(initial?.note ?? '');
     const [secret, setSecret] = useState<string>('');
     const [showSecret, setShowSecret] = useState<boolean>(false);
@@ -61,30 +76,52 @@ export const AssetFormScreen = ({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [clipboardWiped, setClipboardWiped] = useState<boolean>(false);
 
-    // Schedule a clipboard wipe whenever the user types/pastes into the secret
-    // field. If the OS clipboard contains the exact value we hold in state at
-    // wipe-time, clear it — this catches the common "pasted my password and
-    // forgot to clear" footgun without ever reading other clipboard content
-    // (we only call hasString + getString once, then setString to ""). 사용
-    // 자가 다른 곳에서 더 새 값을 복사했다면 (값 불일치) 건드리지 않는다.
+    // Schedule a clipboard wipe — but **only when the OS clipboard actually
+    // matches the secret in our state** (i.e. it was just pasted). 그렇지
+    // 않으면 사용자가 매 키 입력마다 timer 가 영원히 reset 되어 결국 안
+    // 비워지는 버그가 생긴다. (이전 구현 결함)
+    //
+    // 흐름:
+    //   secret state 가 비지 않으면 → 클립보드 조회 →
+    //     일치하면 30초 후 wipe 예약 (한 번만, 이후 secret 변경에도 timer 유지)
+    //     불일치하면 아무것도 안 함 (사용자가 직접 타이핑한 경우)
     const wipeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pastedSnapshot = useRef<string | null>(null);
     useEffect(() => {
-        if (!secret) return;
-        if (wipeTimer.current) clearTimeout(wipeTimer.current);
-        setClipboardWiped(false);
-        wipeTimer.current = setTimeout(async () => {
-            try {
-                const current = await Clipboard.getStringAsync();
-                if (current && current === secret) {
-                    await Clipboard.setStringAsync('');
-                    setClipboardWiped(true);
-                }
-            } catch (e) {
-                console.warn('clipboard wipe failed', e);
-            }
-        }, CLIPBOARD_CLEAR_DELAY_MS);
-        return () => {
+        if (!secret) {
             if (wipeTimer.current) clearTimeout(wipeTimer.current);
+            wipeTimer.current = null;
+            pastedSnapshot.current = null;
+            return;
+        }
+        // 이미 같은 paste 에 대해 timer 가 살아있으면 다시 예약하지 않음.
+        if (pastedSnapshot.current === secret && wipeTimer.current) return;
+
+        let cancelled = false;
+        Clipboard.getStringAsync()
+            .then((current) => {
+                if (cancelled) return;
+                if (current && current === secret) {
+                    // 클립보드에 정확히 같은 값이 있음 → 페이스트로 추정.
+                    pastedSnapshot.current = secret;
+                    setClipboardWiped(false);
+                    if (wipeTimer.current) clearTimeout(wipeTimer.current);
+                    wipeTimer.current = setTimeout(async () => {
+                        try {
+                            const c2 = await Clipboard.getStringAsync();
+                            if (c2 && c2 === pastedSnapshot.current) {
+                                await Clipboard.setStringAsync('');
+                                setClipboardWiped(true);
+                            }
+                        } catch (e) {
+                            console.warn('clipboard wipe failed', e);
+                        }
+                    }, CLIPBOARD_CLEAR_DELAY_MS);
+                }
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
         };
     }, [secret]);
 
@@ -165,7 +202,7 @@ export const AssetFormScreen = ({
                     <Text style={styles.label}>분류</Text>
                     <SegmentedControl<AssetType>
                         value={type}
-                        onChange={setType}
+                        onChange={handleTypeChange}
                         options={ASSET_TYPE_ORDER.map((t) => ({
                             value: t,
                             label: ASSET_TYPE_META[t].label,
@@ -189,7 +226,7 @@ export const AssetFormScreen = ({
                     <Text style={styles.label}>떠나신 후 처리 방식</Text>
                     <SegmentedControl<ActionOnDeath>
                         value={action}
-                        onChange={setAction}
+                        onChange={handleActionChange}
                         options={ACTION_ORDER.map((a) => ({
                             value: a,
                             label: ACTION_META[a].label,
@@ -197,6 +234,11 @@ export const AssetFormScreen = ({
                             color: ACTION_META[a].color,
                         }))}
                     />
+                    {!actionTouched && !isEditing ? (
+                        <Text style={styles.actionHint}>
+                            분류에 맞춰 추천된 처리 방식이에요. 자유롭게 바꿔도 돼요.
+                        </Text>
+                    ) : null}
 
                     {/* Secret */}
                     <View style={styles.secretHeader}>
@@ -272,11 +314,13 @@ export const AssetFormScreen = ({
                             </TouchableOpacity>
                         ) : null}
                     </View>
-                    {secret ? (
+                    {/* paste 가 감지된 경우 (pastedSnapshot === secret) 또는 wipe 가 끝난 경우만 노출.
+                        사용자가 직접 타이핑한 값에는 클립보드 동작을 안내하지 않는다. */}
+                    {clipboardWiped ? (
+                        <Text style={styles.clipboardHint}>🧹 클립보드를 자동으로 비웠어요.</Text>
+                    ) : pastedSnapshot.current === secret && secret ? (
                         <Text style={styles.clipboardHint}>
-                            {clipboardWiped
-                                ? '🧹 클립보드를 자동으로 비웠어요.'
-                                : '🔒 30초 후 클립보드를 자동으로 비울게요.'}
+                            🔒 붙여넣은 값을 30초 후 클립보드에서 자동으로 지울게요.
                         </Text>
                     ) : null}
 
@@ -419,6 +463,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.xs,
     },
     clipboardHint: {
+        ...typography.caption,
+        color: colors.text.caption,
+        fontSize: 11,
+        marginTop: spacing.xs,
+        paddingHorizontal: spacing.xs,
+    },
+    actionHint: {
         ...typography.caption,
         color: colors.text.caption,
         fontSize: 11,

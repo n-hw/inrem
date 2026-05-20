@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -10,6 +9,7 @@ import {
     View,
 } from 'react-native';
 import { ScreenLayout } from '../components/ScreenLayout';
+import { Toast } from '../components/Toast';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
@@ -43,6 +43,7 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
     const [lastActiveAt, setLastActiveAt] = useState<Date | null>(null);
     const [remainingSeconds, setRemainingSeconds] = useState(0);
     const [heritageSummary, setHeritageSummary] = useState<AssetSummary | null>(null);
+    const [toast, setToast] = useState<{ message: string; tone: 'info' | 'success' } | null>(null);
 
     // Initial Fetch: Policy & Status. Sends an app_open heartbeat on
     // mount so the user is registered as active; later polls via the
@@ -117,9 +118,11 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
             const response = await signalApi.sendHeartbeat('manual_checkin');
             setLastActiveAt(new Date(response.last_active_at));
             await haptic.success();
+            setToast({ message: '안부 확인 완료! 타이머가 연장됐어요.', tone: 'success' });
         } catch (e) {
             console.error('Check-in failed', e);
             await haptic.error();
+            setToast({ message: '안부 확인에 실패했어요. 다시 시도해 주세요.', tone: 'info' });
         }
     };
 
@@ -130,11 +133,11 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
         } catch (e) {
             console.warn('Upsell click log failed', e);
         }
-        Alert.alert(
-            '곧 만나요',
-            '가족공유 기능은 준비 중이에요. 출시되면 가장 먼저 알려드릴게요.',
-            [{ text: '확인', style: 'default' }],
-        );
+        // Alert.alert 가 RN Web 에서 invisible → inline Toast 로 대체.
+        setToast({
+            message: '가족공유는 준비 중이에요. 출시되면 가장 먼저 알려드릴게요.',
+            tone: 'info',
+        });
     };
 
     // Calculate percentage for visualization
@@ -275,6 +278,13 @@ export const HomeScreen: React.FC<Props> = ({ onNavigate }) => {
                 </TouchableOpacity>
 
             </ScrollView>
+            {toast ? (
+                <Toast
+                    message={toast.message}
+                    tone={toast.tone}
+                    onDone={() => setToast(null)}
+                />
+            ) : null}
         </ScreenLayout>
     );
 };
