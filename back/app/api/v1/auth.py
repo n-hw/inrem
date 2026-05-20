@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.rate_limit import LOGIN_LIMITER
+from app.core.rate_limit import LOGIN_LIMITER, REGISTER_LIMITER
 from app.core.security import create_access_token, create_refresh_token, decode_refresh_token
 from app.db.session import get_db
 from app.repositories import user_repository
@@ -26,6 +26,12 @@ audit_logger = logging.getLogger("inrem.audit.account")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _client_ip(request: Request) -> str:
+    """Best-effort client IP, behind proxies via X-Forwarded-For first hop."""
+    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    return fwd or (request.client.host if request.client else "unknown")
+
+
 def _deletion_status(user: User) -> DeletionStatusResponse:
     requested = user.deletion_requested_at
     remaining = account_service.grace_remaining(user)
@@ -38,18 +44,15 @@ def _deletion_status(user: User) -> DeletionStatusResponse:
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(
+    request: Request,
     user_create: UserCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Register a new user.
-    
-    Args:
-        user_create: User registration data (email, password).
-        db: Database session.
-    
-    Returns:
-        Access token for the newly registered user.
+
+    **Rate-limited** to 5 signups / hour per client IP — 자동 가입 farm 차단.
     """
+    REGISTER_LIMITER.check(f"register:{_client_ip(request)}")
     try:
         _, access_token, refresh_token = await auth_service.register_user(
             db, user_create
@@ -76,12 +79,7 @@ async def login(
     brute-force defense. Successful and failed attempts both count;
     legitimate fat-finger users see a 429 with `Retry-After: 60`.
     """
-    # IP from X-Forwarded-For when behind a proxy, else direct.
-    client_ip = (
-        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        or (request.client.host if request.client else "unknown")
-    )
-    LOGIN_LIMITER.check(f"login:{form_data.username.lower()}:{client_ip}")
+    LOGIN_LIMITER.check(f"login:{form_data.username.lower()}:{_client_ip(request)}")
 
     result = await auth_service.authenticate_user(db, form_data.username, form_data.password)
     if result is None:

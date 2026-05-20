@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_current_user
+from app.core.rate_limit import UPSELL_CLICK_LIMITER
 from app.models.user import User
 from app.models.monitoring_policy import MonitoringPolicy
 from app.schemas.settings import (
@@ -82,7 +83,10 @@ async def log_upsell_click(
 
     결제 모듈 구현 전 단계의 **전환 가설(KPI)** 검증용. DB 테이블 없이
     구조화 로그만 남기고, 추후 분석 파이프라인에서 집계한다.
+
+    Rate-limited 30/min per user — 메트릭 조작 / 로그 스팸 차단.
     """
+    UPSELL_CLICK_LIMITER.check(f"upsell:{current_user.id}")
     logger.info(
         "upsell_click",
         extra={

@@ -131,8 +131,20 @@ class GmailSMTPProvider:
 _email_provider: EmailProvider | None = None
 
 
+class EmailConfigError(RuntimeError):
+    """Raised when production env tries to start without a real email provider."""
+
+
 def _build_default_provider() -> EmailProvider:
-    """Pick the right provider based on env. Gmail when configured, else Mock."""
+    """Pick the right provider based on env.
+
+    Gmail 자격증명이 있으면 Gmail SMTP, 없으면 dev 안전망으로 Mock.
+
+    **Production 가드**: `ENV=production` 인데 Gmail (혹은 향후 다른 실 발송)
+    프로바이더 자격증명이 없다면 silent 로 Mock 폴백하지 않고 startup 에서
+    에러를 던진다 — 알림이 실제로 도달하지 않는 상태로 prod 가 떠 있는
+    것은 안전 알림 서비스에 치명적.
+    """
     username = settings.GMAIL_USERNAME
     password = settings.GMAIL_APP_PASSWORD
     if username and password:
@@ -145,6 +157,14 @@ def _build_default_provider() -> EmailProvider:
             app_password=password,
             from_name=settings.GMAIL_FROM_NAME or "InRem",
         )
+
+    if settings.ENV == "production":
+        raise EmailConfigError(
+            "ENV=production 인데 이메일 프로바이더 자격증명이 없습니다. "
+            "GMAIL_USERNAME + GMAIL_APP_PASSWORD 또는 다른 실 발송 "
+            "프로바이더를 설정하세요. 안부 알림 미도달은 서비스 결함입니다."
+        )
+
     logger.warning(
         "email_provider_init_mock",
         extra={"reason": "GMAIL_USERNAME / GMAIL_APP_PASSWORD not set"},

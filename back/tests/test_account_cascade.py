@@ -124,3 +124,20 @@ async def test_user_delete_cascades_guardian_mappings(session):
 
     rows = (await session.execute(select(Guardian))).scalars().all()
     assert rows == [], "Guardian mapping survived ward delete"
+
+
+@pytest.mark.asyncio
+async def test_guardian_delete_also_cleans_mapping(session):
+    """대칭: ward 가 아닌 guardian 쪽을 삭제해도 mapping 행은 함께 사라져야 함."""
+    ward = User(id=uuid4(), email="w2@x.com", password_hash="x", is_active=True)
+    guardian = User(id=uuid4(), email="g2@x.com", password_hash="x", is_active=True)
+    session.add_all([ward, guardian])
+    await session.flush()
+    session.add(Guardian(id=uuid4(), ward_id=ward.id, guardian_id=guardian.id))
+    await session.commit()
+
+    await session.delete(guardian)
+    await session.commit()
+
+    rows = (await session.execute(select(Guardian))).scalars().all()
+    assert rows == [], "Guardian mapping survived guardian-side delete"

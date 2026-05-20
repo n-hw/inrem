@@ -238,6 +238,36 @@ async def test_login_rate_limit_keyed_by_email_and_ip(async_client):
 
 
 @pytest.mark.asyncio
+async def test_register_rate_limited_per_ip(async_client):
+    """같은 IP 6번째 회원가입 시도 → 429. (이메일은 매번 달라도 IP 키로 묶임)"""
+    from unittest.mock import AsyncMock, patch
+
+    from app.core.rate_limit import REGISTER_LIMITER
+
+    with REGISTER_LIMITER._lock:
+        REGISTER_LIMITER._events.clear()
+
+    # 5번 통과 (mock 으로 항상 성공 응답)
+    fake = (User(id=uuid4(), email="x@x.com"), "access-tok", "refresh-tok")
+    with patch(
+        "app.services.auth_service.register_user",
+        new=AsyncMock(return_value=fake),
+    ):
+        for i in range(REGISTER_LIMITER.limit):
+            r = await async_client.post(
+                "/api/v1/auth/register",
+                json={"email": f"signup{i}@example.com", "password": "passw0rd!"},
+            )
+            assert r.status_code == 201, f"attempt {i + 1}: {r.status_code}"
+        # 6th
+        r = await async_client.post(
+            "/api/v1/auth/register",
+            json={"email": "signup-final@example.com", "password": "passw0rd!"},
+        )
+    assert r.status_code == 429
+
+
+@pytest.mark.asyncio
 async def test_purge_no_candidates_skips_commit():
     from unittest.mock import MagicMock
 

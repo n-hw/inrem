@@ -93,3 +93,26 @@ async def test_mock_provider_is_a_noop_returning_true():
     provider = MockEmailProvider()
     ok = await provider.send_email("x@example.com", "s", "b")
     assert ok is True
+
+
+def test_default_provider_fails_fast_in_production_without_creds(monkeypatch):
+    """ENV=production + 자격증명 미설정 → silent Mock 폴백 대신 명시적 에러."""
+    from app.services.email_service import EmailConfigError
+
+    monkeypatch.setattr(email_service.settings, "ENV", "production")
+    monkeypatch.setattr(email_service.settings, "GMAIL_USERNAME", None)
+    monkeypatch.setattr(email_service.settings, "GMAIL_APP_PASSWORD", None)
+    _reset_provider()
+    with pytest.raises(EmailConfigError):
+        _build_default_provider()
+
+
+def test_default_provider_uses_gmail_in_production_with_creds(monkeypatch):
+    """자격증명 있으면 prod 에서도 Gmail 정상 선택."""
+    monkeypatch.setattr(email_service.settings, "ENV", "production")
+    monkeypatch.setattr(email_service.settings, "GMAIL_USERNAME", "ops@example.com")
+    monkeypatch.setattr(email_service.settings, "GMAIL_APP_PASSWORD", "appp")
+    monkeypatch.setattr(email_service.settings, "GMAIL_FROM_NAME", None)
+    _reset_provider()
+    provider = _build_default_provider()
+    assert isinstance(provider, GmailSMTPProvider)

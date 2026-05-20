@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_current_user
+from app.core.rate_limit import HEARTBEAT_LIMITER
 from app.models.user import User
 from app.schemas.signal import (
     HeartbeatRequest,
@@ -34,9 +35,13 @@ async def send_heartbeat(
     - Update the user's last_active_at timestamp
     - Record the activity signal for analytics
     """
+    # Rate-limit: 분당 60회 (1초 1회). 정상 흐름은 app_open + ~30s 주기 →
+    # 충분히 여유 있지만 무한 reset 공격은 차단.
+    HEARTBEAT_LIMITER.check(f"hb:{current_user.id}")
+
     signal_type = request.signal_type if request else None
     device_info = request.device_info if request else None
-    
+
     signal, last_active_at = await signal_service.record_heartbeat(
         db=db,
         user_id=current_user.id,
