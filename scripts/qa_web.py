@@ -158,6 +158,25 @@ async def main() -> int:
         await page.wait_for_timeout(4000)  # network + auth + getMe
         await shot(page, result, "04-after-signup")
 
+        print("\n▶ Scenario 3b — Onboarding flow (if shown, skip)")
+        try:
+            # After signup, new users see the onboarding flow.
+            # Check if onboarding step 1 is visible and skip it.
+            onboarding_text = page.locator("text=InRem이 하는 일")
+            if await onboarding_text.is_visible(timeout=3000):
+                result.ok("온보딩 Step 1 노출 확인")
+                # Skip the entire onboarding flow
+                skip_btn = page.get_by_text("건너뛰기", exact=True).first
+                await skip_btn.click(timeout=3000)
+                await page.wait_for_timeout(2000)
+                result.ok("온보딩 건너뛰기 완료")
+                await shot(page, result, "03b-onboarding-skipped")
+            else:
+                # Onboarding not shown (e.g., already completed or API skipped)
+                result.ok("온보딩 미노출 (기존 사용자이거나 API 오류)")
+        except Exception as e:
+            result.fail("온보딩 처리", str(e)[:120])
+
         print("\n▶ Scenario 4 — Home screen post-auth")
         body_text = (await page.inner_text("body")).lower()
         if "안녕" in body_text or email in body_text or "안전" in body_text:

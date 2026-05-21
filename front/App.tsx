@@ -14,6 +14,7 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { SignupScreen } from './src/screens/SignupScreen';
 import { useAppStateHeartbeat } from './src/hooks/useAppStateHeartbeat';
 import { usePushNotification } from './src/hooks/usePushNotification';
+import { OnboardingFlow } from './src/features/onboarding/components/OnboardingFlow';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,7 +46,7 @@ const UnauthenticatedApp = () => {
 };
 
 const AppContent = () => {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, isOnboardingCompleted } = useAuth();
 
   if (isLoading) {
     return (
@@ -58,6 +59,10 @@ const AppContent = () => {
         </View>
       </ScreenLayout>
     );
+  }
+
+  if (isAuthenticated && !isOnboardingCompleted) {
+    return <OnboardingFlow />;
   }
 
   if (isAuthenticated) {
