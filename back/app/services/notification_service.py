@@ -8,8 +8,9 @@
 ENV=production + credentials 미설정 시 NotificationConfigError raise (fail-fast).
 """
 
+import asyncio
 import logging
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol
 from uuid import UUID
 
 from sqlalchemy import update
@@ -23,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 # ── Provider Protocol ────────────────────────────────────────────────────────
 
-@runtime_checkable
 class NotificationProvider(Protocol):
     async def send_push(
         self,
@@ -108,7 +108,7 @@ class FCMNotificationProvider:
                 data=data or {},
                 token=token,
             )
-            response = messaging.send(message)
+            response = await asyncio.to_thread(messaging.send, message)
             logger.info(f"[FCM] Notification sent: {response}")
             return True
         except messaging.UnregisteredError:
@@ -139,7 +139,7 @@ class FCMNotificationProvider:
                 data=data or {},
                 tokens=tokens,
             )
-            response = messaging.send_each_for_multicast(message)
+            response = await asyncio.to_thread(messaging.send_each_for_multicast, message)
             failed = [tokens[i] for i, r in enumerate(response.responses) if not r.success]
             logger.info(
                 f"[FCM] Multicast: {response.success_count} ok, {response.failure_count} fail"
@@ -175,10 +175,10 @@ def _build_default_provider() -> NotificationProvider:
 _provider: NotificationProvider | None = None
 
 
-def initialize_notification_provider() -> None:
+def initialize_notification_provider(provider: NotificationProvider | None = None) -> None:
     """Call once at app startup (in lifespan). Raises NotificationConfigError in prod."""
     global _provider
-    _provider = _build_default_provider()
+    _provider = provider or _build_default_provider()
 
 
 def get_provider() -> NotificationProvider:

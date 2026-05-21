@@ -5,11 +5,20 @@ from unittest.mock import patch
 
 import pytest
 
+from app.services import notification_service
 from app.services.notification_service import (
     NoopNotificationProvider,
     NotificationConfigError,
     _build_default_provider,
 )
+
+
+@pytest.fixture(autouse=True)
+def reset_provider():
+    """Reset notification provider singleton between tests."""
+    notification_service._provider = None
+    yield
+    notification_service._provider = None
 
 
 def test_noop_provider_returned_when_no_credentials():
