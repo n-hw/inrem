@@ -2,7 +2,8 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL =
+    (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1');
 
 const ACCESS_KEY = 'access_token';
 const REFRESH_KEY = 'refresh_token';
