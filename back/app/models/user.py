@@ -20,6 +20,9 @@ class User(Base):
     # 이 컬럼이 NULL 이 아니면 계정은 "deletion pending" 상태.
     deletion_requested_at = Column(DateTime, nullable=True, default=None)
 
+    # 온보딩 완료 시각. NULL 이면 신규 사용자 → 앱이 온보딩 화면으로 라우팅.
+    onboarding_completed_at = Column(DateTime, nullable=True, default=None)
+
     # Push notifications
     fcm_token = Column(String, nullable=True)  # Firebase Cloud Messaging token
 
