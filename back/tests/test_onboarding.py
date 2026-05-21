@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -37,6 +37,7 @@ def mock_user_onboarded():
 @pytest.fixture
 def override_no_onboarding(mock_user_no_onboarding):
     db_mock = AsyncMock()
+    db_mock.add = MagicMock()
     app.dependency_overrides[get_current_user] = lambda: mock_user_no_onboarding
     app.dependency_overrides[get_db] = lambda: db_mock
     yield db_mock
@@ -46,6 +47,7 @@ def override_no_onboarding(mock_user_no_onboarding):
 @pytest.fixture
 def override_onboarded(mock_user_onboarded):
     db_mock = AsyncMock()
+    db_mock.add = MagicMock()
     app.dependency_overrides[get_current_user] = lambda: mock_user_onboarded
     app.dependency_overrides[get_db] = lambda: db_mock
     yield db_mock
