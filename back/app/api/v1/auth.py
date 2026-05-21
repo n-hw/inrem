@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -11,6 +12,7 @@ from app.db.session import get_db
 from app.repositories import user_repository
 from app.schemas.auth import (
     DeletionStatusResponse,
+    OnboardingResponse,
     RefreshRequest,
     Token,
     UserCreate,
@@ -188,3 +190,18 @@ async def restore_account(
         extra={"user_id": str(user.id)},
     )
     return _deletion_status(user)
+
+
+@router.patch("/me/onboarding", response_model=OnboardingResponse)
+async def complete_onboarding(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Mark onboarding as completed. Idempotent — safe to call multiple times."""
+    if current_user.onboarding_completed_at is None:
+        current_user.onboarding_completed_at = datetime.utcnow()
+        db.add(current_user)
+        await db.commit()
+    return OnboardingResponse(
+        onboarding_completed_at=current_user.onboarding_completed_at.isoformat()
+    )
