@@ -7,9 +7,10 @@ import { spacing, radius } from '../../../theme/spacing';
 interface Props {
     onNext: () => void;
     onSkipAll: () => void;
+    isSkipping?: boolean;
 }
 
-export const StepValueIntro = ({ onNext, onSkipAll }: Props) => (
+export const StepValueIntro = ({ onNext, onSkipAll, isSkipping = false }: Props) => (
     <View style={styles.container}>
         <View style={styles.content}>
             <Text style={styles.icon}>🕰</Text>
@@ -28,11 +29,13 @@ export const StepValueIntro = ({ onNext, onSkipAll }: Props) => (
             </View>
         </View>
         <View style={styles.actions}>
-            <TouchableOpacity style={styles.primaryButton} onPress={onNext}>
+            <TouchableOpacity style={styles.primaryButton} onPress={onNext} disabled={isSkipping}>
                 <Text style={[typography.body1, styles.primaryButtonText]}>다음</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.skipButton} onPress={onSkipAll}>
-                <Text style={[typography.caption, styles.skipText]}>건너뛰기</Text>
+            <TouchableOpacity style={styles.skipButton} onPress={onSkipAll} disabled={isSkipping}>
+                <Text style={[typography.caption, styles.skipText]}>
+                    {isSkipping ? '처리 중...' : '건너뛰기'}
+                </Text>
             </TouchableOpacity>
         </View>
     </View>

@@ -203,5 +203,5 @@ async def complete_onboarding(
         db.add(current_user)
         await db.commit()
     return OnboardingResponse(
-        onboarding_completed_at=current_user.onboarding_completed_at.isoformat()
+        onboarding_completed_at=current_user.onboarding_completed_at
     )

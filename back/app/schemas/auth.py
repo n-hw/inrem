@@ -48,7 +48,7 @@ class UserResponse(BaseModel):
 
 
 class OnboardingResponse(BaseModel):
-    onboarding_completed_at: str
+    onboarding_completed_at: datetime
 
 
 class DeletionStatusResponse(BaseModel):

@@ -83,8 +83,6 @@ class FCMNotificationProvider:
         import firebase_admin  # deferred import
         from firebase_admin import credentials as fb_creds
 
-        self._credentials_path = credentials_path
-
         try:
             firebase_admin.get_app()
             logger.info("[FCM] Reusing existing Firebase app")

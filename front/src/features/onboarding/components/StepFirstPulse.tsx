@@ -4,7 +4,6 @@ import { colors } from '../../../theme/colors';
 import { typography } from '../../../theme/typography';
 import { spacing, radius } from '../../../theme/spacing';
 import { SensitivityLevel } from '../../../api/client';
-import { useOnboarding } from '../hooks/useOnboarding';
 
 const SENSITIVITY_OPTIONS: { value: SensitivityLevel; label: string; description: string }[] = [
     { value: 'relaxed', label: '느슨함', description: '24시간 무활동 시 안부 확인' },
@@ -13,12 +12,13 @@ const SENSITIVITY_OPTIONS: { value: SensitivityLevel; label: string; description
 ];
 
 interface Props {
+    onFinish: (sensitivity: SensitivityLevel) => void;
     onSkipAll: () => void;
+    isCompleting: boolean;
 }
 
-export const StepFirstPulse = ({ onSkipAll }: Props) => {
+export const StepFirstPulse = ({ onFinish, onSkipAll, isCompleting }: Props) => {
     const [selected, setSelected] = useState<SensitivityLevel>('normal');
-    const { finishOnboarding, isCompleting } = useOnboarding();
 
     return (
         <View style={styles.container}>
@@ -34,6 +34,7 @@ export const StepFirstPulse = ({ onSkipAll }: Props) => {
                             key={opt.value}
                             style={[styles.option, selected === opt.value && styles.optionSelected]}
                             onPress={() => setSelected(opt.value)}
+                            disabled={isCompleting}
                         >
                             <View style={[styles.radio, selected === opt.value && styles.radioSelected]} />
                             <View style={styles.optionText}>
@@ -47,7 +48,7 @@ export const StepFirstPulse = ({ onSkipAll }: Props) => {
             <View style={styles.actions}>
                 <TouchableOpacity
                     style={[styles.primaryButton, isCompleting && styles.disabled]}
-                    onPress={() => finishOnboarding(selected)}
+                    onPress={() => onFinish(selected)}
                     disabled={isCompleting}
                 >
                     {isCompleting ? (
@@ -57,7 +58,9 @@ export const StepFirstPulse = ({ onSkipAll }: Props) => {
                     )}
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.skipButton} onPress={onSkipAll} disabled={isCompleting}>
-                    <Text style={[typography.caption, styles.skipText]}>건너뛰기</Text>
+                    <Text style={[typography.caption, styles.skipText]}>
+                        {isCompleting ? '처리 중...' : '건너뛰기'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -81,7 +84,7 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         gap: spacing.md,
     },
-    optionSelected: { borderColor: colors.primary, backgroundColor: '#F0F4FF' },
+    optionSelected: { borderColor: colors.primary, backgroundColor: colors.accent },
     radio: {
         width: 20,
         height: 20,

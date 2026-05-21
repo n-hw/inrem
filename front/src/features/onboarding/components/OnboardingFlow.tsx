@@ -27,7 +27,7 @@ const dotStyles = StyleSheet.create({
 
 export const OnboardingFlow = () => {
     const [step, setStep] = useState<Step>(1);
-    const { finishOnboarding } = useOnboarding();
+    const { finishOnboarding, isCompleting } = useOnboarding();
 
     const goNext = () => {
         if (step < TOTAL_STEPS) {
@@ -36,15 +36,31 @@ export const OnboardingFlow = () => {
         }
     };
 
-    const skipAll = () => finishOnboarding();
-
     return (
         <View style={styles.container}>
             <ProgressDots current={step} />
             <View style={styles.stepContainer}>
-                {step === 1 && <StepValueIntro onNext={goNext} onSkipAll={skipAll} />}
-                {step === 2 && <StepGuardianIntro onNext={goNext} onSkipAll={skipAll} />}
-                {step === 3 && <StepFirstPulse onSkipAll={skipAll} />}
+                {step === 1 && (
+                    <StepValueIntro
+                        onNext={goNext}
+                        onSkipAll={() => finishOnboarding()}
+                        isSkipping={isCompleting}
+                    />
+                )}
+                {step === 2 && (
+                    <StepGuardianIntro
+                        onNext={goNext}
+                        onSkipAll={() => finishOnboarding()}
+                        isSkipping={isCompleting}
+                    />
+                )}
+                {step === 3 && (
+                    <StepFirstPulse
+                        onFinish={finishOnboarding}
+                        onSkipAll={() => finishOnboarding()}
+                        isCompleting={isCompleting}
+                    />
+                )}
             </View>
         </View>
     );
